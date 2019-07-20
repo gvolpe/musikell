@@ -1,8 +1,12 @@
 module Main where
 
-import Neo
+import           Repository.Artist
+import           Repository.Neo                 ( mkPipePool
+                                                , showArtist
+                                                )
 
 main :: IO ()
 main = do
-  artistRepo <- mkArtistRepository
-  foo artistRepo
+  pool       <- mkPipePool
+  artistRepo <- mkArtistRepository pool
+  showArtist artistRepo

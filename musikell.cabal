@@ -7,7 +7,7 @@ version:             0.1.0.0
 synopsis:            Artists, Albums and Songs
 -- description:
 homepage:            https://github.com/gvolpe/musikell
--- bug-reports:
+bug-reports:         https://github.com/gvolpe/musikell/issues
 license:             Apache-2.0
 license-file:        LICENSE
 author:              Gabriel Volpe
@@ -18,9 +18,11 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Neo
-  -- other-modules:
-  -- other-extensions:
+  exposed-modules:     Domain
+                     , Repository.Artist
+                     , Repository.Mapper
+                     , Repository.Neo
+                     , Utils
   build-depends:       base ^>=4.12.0.0
                      , data-default ^>= 0.7.1.1
                      , containers ^>= 0.6.0.1
@@ -33,8 +35,6 @@ library
 
 executable musikell
   main-is:             Main.hs
-  -- other-modules:
-  -- other-extensions:
   build-depends:       base ^>=4.12.0.0
                      , musikell
   hs-source-dirs:      app
