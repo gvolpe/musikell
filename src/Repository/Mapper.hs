@@ -44,4 +44,4 @@ toArtistId :: NodeProps -> Maybe ArtistId
 toArtistId p = ArtistId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
 
 toAlbumId :: NodeProps -> Maybe AlbumId
-toAlbumId p = AlbumId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
+toAlbumId p = AlbumId <$> (Map.lookup "ID(b)" p >>= exact :: Maybe Int)

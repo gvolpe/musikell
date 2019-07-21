@@ -34,17 +34,18 @@ mkAlbumRepository pool = pure $ AlbumRepository
 findAlbum' :: Text -> Pipe -> IO (Maybe Album)
 findAlbum' t pipe = do
   records <- run pipe $ queryP
-    "MATCH (a:Album) WHERE a.name CONTAINS {title} RETURN a"
+    "MATCH (b:Album) WHERE b.name CONTAINS {title} RETURN b"
     (fromList [("title", T t)])
   pure $ headMaybe records >>= toNodeProps >>= toEntity
 
 createAlbum' :: ArtistId -> Album -> Pipe -> IO (Maybe AlbumId)
 createAlbum' artistId a pipe = do
   records <- run pipe $ queryP
-    (  "MATCH (r:Artist) WHERE ID(r)={artistId} "
-    <> "CREATE (a:Album { name : {name}, released : {released}, length : {length} }) "
-    <> "CREATE (r)-[h:HAS_ALBUM]->(a) "
-    <> "RETURN ID(a)"
+    (  "MATCH (a:Artist) WHERE ID(a)={artistId} "
+    <> "CREATE (b:Album { name : {name}, released : {released}, length : {length} }) "
+    <> "CREATE (a)-[h:HAS_ALBUM]->(b) "
+    <> "CREATE (b)-[f:FROM_ARTIST]->(a) "
+    <> "RETURN ID(b)"
     )
     (fromList
       [ ("artistId", I (unArtistId artistId))

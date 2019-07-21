@@ -39,10 +39,12 @@ findSong' t pipe = do
 
 createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
 createSong' artistId albumId s pipe = void . run pipe $ queryP
-  (  "MATCH (a:Album), (r:Artist) WHERE ID(a)={albumId} AND ID(r)={artistId} "
+  (  "MATCH (a:Artist), (b:Album) WHERE ID(a)={artistId} AND ID(b)={albumId} "
   <> "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) "
+  <> "CREATE (b)-[hb:HAS_SONG]->(s) "
   <> "CREATE (a)-[ha:HAS_SONG]->(s) "
-  <> "CREATE (r)-[hr:HAS_SONG]->(s) "
+  <> "CREATE (s)-[fb:FROM_ALBUM]->(b) "
+  <> "CREATE (s)-[fa:FROM_ARTIST]->(a) "
   <> "RETURN ID(s)"
   )
   (fromList
