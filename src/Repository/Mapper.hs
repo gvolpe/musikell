@@ -20,6 +20,21 @@ instance NodeMapper Artist where
       <$> (Map.lookup "name" p >>= exact :: Maybe Text)
       <*> (Map.lookup "origin" p >>= exact :: Maybe Text)
 
+instance NodeMapper Album where
+  toEntity p =
+    Album
+      <$> (Map.lookup "name" p >>= exact :: Maybe Text)
+      <*> (Map.lookup "released" p >>= exact :: Maybe Int)
+      <*> (Map.lookup "length" p >>= exact :: Maybe Int)
+      <*> Just (Map.lookup "studio" p >>= exact :: Maybe Text)
+
+instance NodeMapper Song where
+  toEntity p =
+    Song
+      <$> (Map.lookup "no" p >>= exact :: Maybe Int)
+      <*> (Map.lookup "title" p >>= exact :: Maybe Text)
+      <*> (Map.lookup "duration" p >>= exact :: Maybe Int)
+
 toNode :: Monad m => Record -> m Node
 toNode record = record `at` "a" >>= exact
 

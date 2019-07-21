@@ -19,6 +19,7 @@ extra-source-files:  CHANGELOG.md
 
 library
   exposed-modules:     Domain
+                     , Repository.Album
                      , Repository.Artist
                      , Repository.Mapper
                      , Repository.Neo
