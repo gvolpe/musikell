@@ -32,7 +32,7 @@ findArtist' n pipe = do
   records <- run pipe $ queryP
     "MATCH (a:Artist) WHERE a.name CONTAINS {name} RETURN a"
     (fromList [("name", T n)])
-  pure $ headMaybe records >>= toNodeProps >>= toEntity
+  pure $ headMaybe records >>= toNodeProps "a" >>= toEntity
 
 createArtist' :: Artist -> Pipe -> IO (Maybe ArtistId)
 createArtist' a pipe = do

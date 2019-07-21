@@ -34,11 +34,11 @@ instance NodeMapper Song where
       <*> (Map.lookup "title" p >>= exact :: Maybe Text)
       <*> (Map.lookup "duration" p >>= exact :: Maybe Int)
 
-toNode :: Monad m => Record -> m Node
-toNode record = record `at` "a" >>= exact
+toNode :: Monad m => Text -> Record -> m Node
+toNode identifier record = record `at` identifier >>= exact
 
-toNodeProps :: Monad m => Record -> m NodeProps
-toNodeProps r = nodeProps <$> toNode r
+toNodeProps :: Monad m => Text -> Record -> m NodeProps
+toNodeProps identifier r = nodeProps <$> toNode identifier r
 
 toArtistId :: NodeProps -> Maybe ArtistId
 toArtistId p = ArtistId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)

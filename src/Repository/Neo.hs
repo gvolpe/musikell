@@ -30,9 +30,14 @@ showAlbum repo = do
   album <- findAlbum repo "10.000 Days"
   print album
 
+showArtistAlbums :: AlbumRepository IO -> IO ()
+showArtistAlbums repo = do
+  albums <- findAlbumsByArtist repo "Tool"
+  print albums
+
 createData
   :: ArtistRepository IO -> AlbumRepository IO -> SongRepository IO -> IO ()
-createData artistRepo albumRepo songRepo = do
+createData artistRepo albumRepo songRepo =
   createArtist artistRepo (Artist "Tool" "Los Angeles, California, US")
     >>= \case
           Just artistId ->

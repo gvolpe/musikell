@@ -35,7 +35,7 @@ findSong' t pipe = do
   records <- run pipe $ queryP
     "MATCH (s:Song) WHERE s.title CONTAINS {title} RETURN s"
     (fromList [("title", T t)])
-  pure $ headMaybe records >>= toNodeProps >>= toEntity
+  pure $ headMaybe records >>= toNodeProps "s" >>= toEntity
 
 createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
 createSong' artistId albumId s pipe = void . run pipe $ queryP
