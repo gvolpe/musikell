@@ -18,19 +18,24 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Domain
+  exposed-modules:     Api.Root
+                     , Api.Schema
+                     , Domain
+                     , Http.Server
                      , Repository.Album
                      , Repository.Artist
                      , Repository.Song
                      , Repository.Mapper
                      , Repository.Neo
                      , Utils
-  build-depends:       base ^>=4.12.0.0
+  build-depends:       base ^>= 4.12.0.0
+                     , bytestring ^>= 0.10.8.2
                      , data-default ^>= 0.7.1.1
                      , containers ^>= 0.6.0.1
                      , hasbolt ^>= 0.1.3.3
                      , morpheus-graphql ^>= 0.1.1
                      , resource-pool ^>= 0.2.3.2
+                     , scotty ^>= 0.11.4
                      , text ^>= 1.2.3.1
   hs-source-dirs:      src
   default-language:    Haskell2010

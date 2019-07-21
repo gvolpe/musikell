@@ -1,12 +1,13 @@
 module Main where
 
+import           Http.Server                    ( serve )
 import           Repository.Album
 import           Repository.Artist
 import           Repository.Song
 import           Repository.Neo
 
-main :: IO ()
-main = do
+program :: IO ()
+program = do
   pool       <- mkPipePool
   songRepo   <- mkSongRepository pool
   albumRepo  <- mkAlbumRepository pool
@@ -16,3 +17,6 @@ main = do
   --showAlbum albumRepo
   showArtistAlbums albumRepo
   showAlbumSongs songRepo
+
+main :: IO ()
+main = serve

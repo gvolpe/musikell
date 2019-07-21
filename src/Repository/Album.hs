@@ -9,9 +9,6 @@ where
 
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
-import           Data.Maybe                     ( fromMaybe
-                                                , maybeToList
-                                                )
 import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
