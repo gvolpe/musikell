@@ -9,9 +9,10 @@ main :: IO ()
 main = do
   pool       <- mkPipePool
   songRepo   <- mkSongRepository pool
-  albumRepo  <- mkAlbumRepository pool songRepo
+  albumRepo  <- mkAlbumRepository pool
   artistRepo <- mkArtistRepository pool
-  createData artistRepo albumRepo songRepo
+  --createData artistRepo albumRepo songRepo
   showArtist artistRepo
-  showAlbum albumRepo
-  --showAlbumsForArtist albumRepo
+  --showAlbum albumRepo
+  showArtistAlbums albumRepo
+  showAlbumSongs songRepo

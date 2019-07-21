@@ -9,7 +9,9 @@ where
 
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , maybeToList
+                                                )
 import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
@@ -20,14 +22,18 @@ import           Utils                          ( headMaybe )
 
 data SongRepository m = SongRepository
   { findSong :: Text -> m (Maybe Song)
+  , findSongsByAlbum :: Text -> m [Song]
+  , findSongsByArtist :: Text -> m [Song]
   , createSong :: ArtistId -> AlbumId -> Song -> m ()
   }
 
 mkSongRepository :: Pool Pipe -> IO (SongRepository IO)
 mkSongRepository pool = pure $ SongRepository
-  { findSong   = withResource pool . findSong'
-  , createSong = \artistId albumId song ->
-                   withResource pool (createSong' artistId albumId song)
+  { findSong          = withResource pool . findSong'
+  , findSongsByAlbum  = withResource pool . findSongsByAlbum'
+  , findSongsByArtist = withResource pool . findSongsByArtist'
+  , createSong        = \artistId albumId song ->
+                          withResource pool (createSong' artistId albumId song)
   }
 
 findSong' :: Text -> Pipe -> IO (Maybe Song)
@@ -36,6 +42,20 @@ findSong' t pipe = do
     "MATCH (s:Song) WHERE s.title CONTAINS {title} RETURN s"
     (fromList [("title", T t)])
   pure $ headMaybe records >>= toNodeProps "s" >>= toEntity
+
+findSongsByAlbum' :: Text -> Pipe -> IO [Song]
+findSongsByAlbum' albumName pipe = do
+  records <- run pipe $ queryP
+    "MATCH (b:Album)-[:HAS_SONG]->(s:Song) WHERE b.name CONTAINS {albumName} RETURN s"
+    (fromList [("albumName", T albumName)])
+  pure $ records >>= (\r -> maybeToList ((toNodeProps "s" r :: Maybe NodeProps) >>= toEntity))
+
+findSongsByArtist' :: Text -> Pipe -> IO [Song]
+findSongsByArtist' artistName pipe = do
+  records <- run pipe $ queryP
+    "MATCH (a:Artist)-[:HAS_SONG]->(s:Song) WHERE a.name CONTAINS {artistName} RETURN s"
+    (fromList [("artistName", T artistName)])
+  pure $ records >>= (\r -> maybeToList ((toNodeProps "s" r :: Maybe NodeProps) >>= toEntity))
 
 createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
 createSong' artistId albumId s pipe = void . run pipe $ queryP

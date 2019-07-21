@@ -35,6 +35,16 @@ showArtistAlbums repo = do
   albums <- findAlbumsByArtist repo "Tool"
   print albums
 
+showAlbumSongs :: SongRepository IO -> IO ()
+showAlbumSongs repo = do
+  songs <- findSongsByAlbum repo "10.000"
+  print songs
+
+showArtistSongs :: SongRepository IO -> IO ()
+showArtistSongs repo = do
+  songs <- findSongsByArtist repo "Tool"
+  print songs
+
 createData
   :: ArtistRepository IO -> AlbumRepository IO -> SongRepository IO -> IO ()
 createData artistRepo albumRepo songRepo =
