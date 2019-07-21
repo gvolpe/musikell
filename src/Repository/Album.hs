@@ -11,6 +11,7 @@ import           Data.Foldable                  ( traverse_ )
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
 import           Data.Maybe                     ( fromMaybe )
+import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
@@ -21,14 +22,14 @@ import           Utils                          ( headMaybe )
 
 data AlbumRepository m = AlbumRepository
   { findAlbum :: Text -> m (Maybe Album)
-  , createAlbum :: Album -> [Song] -> m ()
+  , createAlbum :: NodeId -> Album -> [Song] -> m ()
   }
 
 mkAlbumRepository :: Pool Pipe -> SongRepository IO -> IO (AlbumRepository IO)
 mkAlbumRepository pool songRepo = pure $ AlbumRepository
   { findAlbum   = withResource pool . findAlbum'
-  , createAlbum = \a songs -> do
-                    withResource pool (createAlbum' a) >>= \case
+  , createAlbum = \nodeId a songs -> do
+                    withResource pool (createAlbum' nodeId a) >>= \case
                       Just nodeId -> traverse_ (createSong songRepo) songs
                       Nothing     -> error "Failed to create album" -- FIXME: throw custom exception
   }
@@ -40,12 +41,17 @@ findAlbum' t pipe = do
     (fromList [("title", T t)])
   pure $ headMaybe records >>= toNodeProps >>= toEntity
 
-createAlbum' :: Album -> Pipe -> IO (Maybe NodeId)
-createAlbum' a pipe = do
+createAlbum' :: NodeId -> Album -> Pipe -> IO (Maybe NodeId)
+createAlbum' nodeId a pipe = do
   records <- run pipe $ queryP
-    "CREATE (a:Album { name : {name}, released : {released}, length : {length} }) RETURN ID(a)"
+    (  "MATCH (r:Artist) WHERE ID(r)={artistId} "
+    <> "CREATE (a:Album { name : {name}, released : {released}, length : {length} }) "
+    <> "CREATE (r)-[h:HAS_ALBUM]->(a) "
+    <> "RETURN ID(a)"
+    )
     (fromList
-      [ ("name"    , T (albumName a))
+      [ ("artistId", I (unNodeId nodeId))
+      , ("name"    , T (albumName a))
       , ("released", I (albumReleasedYear a))
       , ("length"  , I (albumTotalLength a))
       ]

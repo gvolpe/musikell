@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 
 -- | The Neo4j connection pool.
 module Repository.Neo where
@@ -33,17 +33,22 @@ createData
   :: ArtistRepository IO -> AlbumRepository IO -> SongRepository IO -> IO ()
 createData artistRepo albumRepo songRepo = do
   createArtist artistRepo (Artist "Tool" "Los Angeles, California, US")
-  let songs =
-        [ Song 1  "Vicarious"                 426
-        , Song 2  "Jambi"                     448
-        , Song 3  "Wings for Marie (Pt 1)"    371
-        , Song 4  "10.000 Days (Wings Pt 2)"  673
-        , Song 5  "The Pot"                   381
-        , Song 6  "Lipan Conjuring"           71
-        , Song 7  "Lost Keys (Blame Hofmann)" 226
-        , Song 8  "Rosetta Stoned"            671
-        , Song 9  "Intension"                 441
-        , Song 10 "Right in Two"              535
-        , Song 11 "Viginti Tres"              302
-        ]
-  createAlbum albumRepo (Album "10.000 Days" 2006 4545) songs
+    >>= \case
+          Just artistId ->
+            createAlbum albumRepo artistId (Album "10.000 Days" 2006 4545) songs
+          Nothing -> pure () -- TODO: Raise error?
+ where
+  songs =
+    [ Song 1  "Vicarious"                 426
+    , Song 2  "Jambi"                     448
+    , Song 3  "Wings for Marie (Pt 1)"    371
+    , Song 4  "10.000 Days (Wings Pt 2)"  673
+    , Song 5  "The Pot"                   381
+    , Song 6  "Lipan Conjuring"           71
+    , Song 7  "Lost Keys (Blame Hofmann)" 226
+    , Song 8  "Rosetta Stoned"            671
+    , Song 9  "Intension"                 441
+    , Song 10 "Right in Two"              535
+    , Song 11 "Viginti Tres"              302
+    ]
+
