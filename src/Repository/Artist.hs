@@ -17,7 +17,7 @@ import           Repository.Mapper
 import           Utils                          ( headMaybe )
 
 data ArtistRepository m = ArtistRepository
-  { findArtist :: Text -> m (Maybe Artist)
+  { findArtist :: ArtistName -> m (Maybe Artist)
   , createArtist :: Artist -> m (Maybe ArtistId)
   }
 
@@ -27,12 +27,11 @@ mkArtistRepository pool = pure $ ArtistRepository
   , createArtist = withResource pool . createArtist'
   }
 
-findArtist' :: Text -> Pipe -> IO (Maybe Artist)
-findArtist' n pipe = do
-  records <- run pipe $ queryP
+findArtist' :: ArtistName -> Pipe -> IO (Maybe Artist)
+findArtist' a pipe = toEntityMaybe "a" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (a:Artist) WHERE a.name CONTAINS {name} RETURN a"
-    (fromList [("name", T n)])
-  pure $ headMaybe records >>= toNodeProps "a" >>= toEntity
+    (fromList [("name", T (unArtistName a))])
 
 createArtist' :: Artist -> Pipe -> IO (Maybe ArtistId)
 createArtist' a pipe = do

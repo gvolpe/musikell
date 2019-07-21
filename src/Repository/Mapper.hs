@@ -5,9 +5,11 @@ module Repository.Mapper where
 
 import           Data.Map                       ( Map )
 import qualified Data.Map                      as Map
+import           Data.Maybe                     ( maybeToList )
 import           Data.Text
 import           Database.Bolt
 import           Domain
+import           Utils                          ( headMaybe )
 
 type NodeProps = Map Text Value
 
@@ -39,6 +41,14 @@ toNode identifier record = record `at` identifier >>= exact
 
 toNodeProps :: Monad m => Text -> Record -> m NodeProps
 toNodeProps identifier r = nodeProps <$> toNode identifier r
+
+toEntityMaybe :: NodeMapper a => Text -> [Record] -> Maybe a
+toEntityMaybe identifier records =
+  headMaybe records >>= toNodeProps identifier >>= toEntity
+
+toEntityList :: NodeMapper a => Text -> [Record] -> [a]
+toEntityList identifier records = records >>= maybeToList . f
+  where f r = (toNodeProps identifier r :: Maybe NodeProps) >>= toEntity
 
 toArtistId :: NodeProps -> Maybe ArtistId
 toArtistId p = ArtistId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)

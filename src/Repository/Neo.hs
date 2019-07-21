@@ -22,29 +22,30 @@ mkPipePool = createPool acquire release 1 3600 10 where
 -- HAS_ARTIST, HAS_ALBUM, HAS_SONG, FROM_ARTIST, FROM_ALBUM, HAS_GENRE, RELATED_TO (artist)
 showArtist :: ArtistRepository IO -> IO ()
 showArtist repo = do
-  artist <- findArtist repo "Tool"
+  artist <- findArtist repo (ArtistName "Tool")
   print artist
 
 showAlbum :: AlbumRepository IO -> IO ()
 showAlbum repo = do
-  album <- findAlbum repo "10.000 Days"
+  album <- findAlbum repo (AlbumName "10.000 Days")
   print album
 
 showArtistAlbums :: AlbumRepository IO -> IO ()
 showArtistAlbums repo = do
-  albums <- findAlbumsByArtist repo "Tool"
+  albums <- findAlbumsByArtist repo (ArtistName "Tool")
   print albums
 
 showAlbumSongs :: SongRepository IO -> IO ()
 showAlbumSongs repo = do
-  songs <- findSongsByAlbum repo "10.000"
+  songs <- findSongsByAlbum repo (AlbumName "10.000")
   print songs
 
 showArtistSongs :: SongRepository IO -> IO ()
 showArtistSongs repo = do
-  songs <- findSongsByArtist repo "Tool"
+  songs <- findSongsByArtist repo (ArtistName "Tool")
   print songs
 
+-- TODO: Use MaybeT
 createData
   :: ArtistRepository IO -> AlbumRepository IO -> SongRepository IO -> IO ()
 createData artistRepo albumRepo songRepo =
@@ -55,7 +56,7 @@ createData artistRepo albumRepo songRepo =
               Just albumId ->
                 traverse_ (createSong songRepo artistId albumId) songs
               Nothing -> pure ()
-          Nothing -> pure () -- TODO: Raise error?
+          Nothing -> pure () -- TODO: Raise error
  where
   songs =
     [ Song 1  "Vicarious"                 426

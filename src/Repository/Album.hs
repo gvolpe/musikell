@@ -22,8 +22,8 @@ import           Repository.Song
 import           Utils                          ( headMaybe )
 
 data AlbumRepository m = AlbumRepository
-  { findAlbum :: Text -> m (Maybe Album)
-  , findAlbumsByArtist :: Text -> m [Album]
+  { findAlbum :: AlbumName -> m (Maybe Album)
+  , findAlbumsByArtist :: ArtistName -> m [Album]
   , createAlbum :: ArtistId -> Album -> m (Maybe AlbumId)
   }
 
@@ -35,19 +35,17 @@ mkAlbumRepository pool = pure $ AlbumRepository
                            withResource pool (createAlbum' artistId album)
   }
 
-findAlbum' :: Text -> Pipe -> IO (Maybe Album)
-findAlbum' t pipe = do
-  records <- run pipe $ queryP
+findAlbum' :: AlbumName -> Pipe -> IO (Maybe Album)
+findAlbum' a pipe = toEntityMaybe "b" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (b:Album) WHERE b.name CONTAINS {title} RETURN b"
-    (fromList [("title", T t)])
-  pure $ headMaybe records >>= toNodeProps "b" >>= toEntity
+    (fromList [("title", T (unAlbumName a))])
 
-findAlbumsByArtist' :: Text -> Pipe -> IO [Album]
-findAlbumsByArtist' artistName pipe = do
-  records <- run pipe $ queryP
+findAlbumsByArtist' :: ArtistName -> Pipe -> IO [Album]
+findAlbumsByArtist' a pipe = toEntityList "b" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_ALBUM]->(b:Album) WHERE a.name CONTAINS {artistName} RETURN b"
-    (fromList [("artistName", T artistName)])
-  pure $ records >>= (\r -> maybeToList ((toNodeProps "b" r :: Maybe NodeProps) >>= toEntity))
+    (fromList [("artistName", T (unArtistName a))])
 
 createAlbum' :: ArtistId -> Album -> Pipe -> IO (Maybe AlbumId)
 createAlbum' artistId a pipe = do

@@ -21,9 +21,9 @@ import           Repository.Mapper
 import           Utils                          ( headMaybe )
 
 data SongRepository m = SongRepository
-  { findSong :: Text -> m (Maybe Song)
-  , findSongsByAlbum :: Text -> m [Song]
-  , findSongsByArtist :: Text -> m [Song]
+  { findSong :: SongName -> m (Maybe Song)
+  , findSongsByAlbum :: AlbumName -> m [Song]
+  , findSongsByArtist :: ArtistName -> m [Song]
   , createSong :: ArtistId -> AlbumId -> Song -> m ()
   }
 
@@ -36,26 +36,23 @@ mkSongRepository pool = pure $ SongRepository
                           withResource pool (createSong' artistId albumId song)
   }
 
-findSong' :: Text -> Pipe -> IO (Maybe Song)
-findSong' t pipe = do
-  records <- run pipe $ queryP
+findSong' :: SongName -> Pipe -> IO (Maybe Song)
+findSong' t pipe = toEntityMaybe "s" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (s:Song) WHERE s.title CONTAINS {title} RETURN s"
-    (fromList [("title", T t)])
-  pure $ headMaybe records >>= toNodeProps "s" >>= toEntity
+    (fromList [("title", T (unSongName t))])
 
-findSongsByAlbum' :: Text -> Pipe -> IO [Song]
-findSongsByAlbum' albumName pipe = do
-  records <- run pipe $ queryP
+findSongsByAlbum' :: AlbumName -> Pipe -> IO [Song]
+findSongsByAlbum' a pipe = toEntityList "s" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (b:Album)-[:HAS_SONG]->(s:Song) WHERE b.name CONTAINS {albumName} RETURN s"
-    (fromList [("albumName", T albumName)])
-  pure $ records >>= (\r -> maybeToList ((toNodeProps "s" r :: Maybe NodeProps) >>= toEntity))
+    (fromList [("albumName", T (unAlbumName a))])
 
-findSongsByArtist' :: Text -> Pipe -> IO [Song]
-findSongsByArtist' artistName pipe = do
-  records <- run pipe $ queryP
+findSongsByArtist' :: ArtistName -> Pipe -> IO [Song]
+findSongsByArtist' a pipe = toEntityList "s" <$> stmt where
+  stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_SONG]->(s:Song) WHERE a.name CONTAINS {artistName} RETURN s"
-    (fromList [("artistName", T artistName)])
-  pure $ records >>= (\r -> maybeToList ((toNodeProps "s" r :: Maybe NodeProps) >>= toEntity))
+    (fromList [("artistName", T (unArtistName a))])
 
 createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
 createSong' artistId albumId s pipe = void . run pipe $ queryP
