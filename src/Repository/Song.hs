@@ -10,6 +10,7 @@ where
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
 import           Data.Maybe                     ( fromMaybe )
+import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
@@ -19,13 +20,14 @@ import           Utils                          ( headMaybe )
 
 data SongRepository m = SongRepository
   { findSong :: Text -> m (Maybe Song)
-  , createSong :: Song -> m ()
+  , createSong :: ArtistId -> AlbumId -> Song -> m ()
   }
 
 mkSongRepository :: Pool Pipe -> IO (SongRepository IO)
 mkSongRepository pool = pure $ SongRepository
   { findSong   = withResource pool . findSong'
-  , createSong = withResource pool . createSong'
+  , createSong = \artistId albumId song ->
+                   withResource pool (createSong' artistId albumId song)
   }
 
 findSong' :: Text -> Pipe -> IO (Maybe Song)
@@ -35,11 +37,18 @@ findSong' t pipe = do
     (fromList [("title", T t)])
   pure $ headMaybe records >>= toNodeProps >>= toEntity
 
-createSong' :: Song -> Pipe -> IO ()
-createSong' s pipe = void . run pipe $ queryP
-  "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) RETURN ID(s)"
+createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
+createSong' artistId albumId s pipe = void . run pipe $ queryP
+  (  "MATCH (a:Album), (r:Artist) WHERE ID(a)={albumId} AND ID(r)={artistId} "
+  <> "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) "
+  <> "CREATE (a)-[ha:HAS_SONG]->(s) "
+  <> "CREATE (r)-[hr:HAS_SONG]->(s) "
+  <> "RETURN ID(s)"
+  )
   (fromList
-    [ ("no"      , I (songNo s))
+    [ ("artistId", I (unArtistId artistId))
+    , ("albumId" , I (unAlbumId albumId))
+    , ("no"      , I (songNo s))
     , ("title"   , T (songTitle s))
     , ("duration", I (songDuration s))
     ]

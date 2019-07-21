@@ -18,7 +18,7 @@ import           Utils                          ( headMaybe )
 
 data ArtistRepository m = ArtistRepository
   { findArtist :: Text -> m (Maybe Artist)
-  , createArtist :: Artist -> m (Maybe NodeId)
+  , createArtist :: Artist -> m (Maybe ArtistId)
   }
 
 mkArtistRepository :: Pool Pipe -> IO (ArtistRepository IO)
@@ -34,9 +34,9 @@ findArtist' n pipe = do
     (fromList [("name", T n)])
   pure $ headMaybe records >>= toNodeProps >>= toEntity
 
-createArtist' :: Artist -> Pipe -> IO (Maybe NodeId)
+createArtist' :: Artist -> Pipe -> IO (Maybe ArtistId)
 createArtist' a pipe = do
   records <- run pipe $ queryP
     "CREATE (a:Artist { name : {name}, origin : {origin} }) RETURN ID(a)"
     (fromList [("name", T (artistName a)), ("origin", T (artistOrigin a))])
-  pure $ headMaybe records >>= toNodeId
+  pure $ headMaybe records >>= toArtistId

@@ -40,5 +40,8 @@ toNode record = record `at` "a" >>= exact
 toNodeProps :: Monad m => Record -> m NodeProps
 toNodeProps r = nodeProps <$> toNode r
 
-toNodeId :: NodeProps -> Maybe NodeId
-toNodeId p = NodeId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
+toArtistId :: NodeProps -> Maybe ArtistId
+toArtistId p = ArtistId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
+
+toAlbumId :: NodeProps -> Maybe AlbumId
+toAlbumId p = AlbumId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)

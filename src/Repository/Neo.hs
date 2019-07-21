@@ -4,6 +4,7 @@
 module Repository.Neo where
 
 import           Data.Default
+import           Data.Foldable                  ( traverse_ )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
@@ -35,7 +36,10 @@ createData artistRepo albumRepo songRepo = do
   createArtist artistRepo (Artist "Tool" "Los Angeles, California, US")
     >>= \case
           Just artistId ->
-            createAlbum albumRepo artistId (Album "10.000 Days" 2006 4545) songs
+            createAlbum albumRepo artistId (Album "10.000 Days" 2006 4545) >>= \case
+              Just albumId ->
+                traverse_ (createSong songRepo artistId albumId) songs
+              Nothing -> pure ()
           Nothing -> pure () -- TODO: Raise error?
  where
   songs =

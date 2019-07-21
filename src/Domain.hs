@@ -3,7 +3,8 @@ module Domain where
 
 import           Data.Text
 
-newtype NodeId = NodeId { unNodeId :: Int } deriving Show
+newtype ArtistId = ArtistId { unArtistId :: Int } deriving Show
+newtype AlbumId = AlbumId { unAlbumId :: Int } deriving Show
 
 data Artist = Artist
   { artistName :: Text
