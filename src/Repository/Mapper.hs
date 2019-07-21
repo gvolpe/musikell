@@ -1,5 +1,6 @@
 {-# LANGUAGE OverloadedStrings #-}
 
+-- | The Neo4j Mapper type class, its instances and some helper functions.
 module Repository.Mapper where
 
 import           Data.Map                       ( Map )

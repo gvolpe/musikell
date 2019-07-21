@@ -1,3 +1,4 @@
+-- | The Domain model.
 module Domain where
 
 import           Data.Text
