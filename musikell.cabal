@@ -21,6 +21,7 @@ library
   exposed-modules:     Domain
                      , Repository.Album
                      , Repository.Artist
+                     , Repository.Song
                      , Repository.Mapper
                      , Repository.Neo
                      , Utils
