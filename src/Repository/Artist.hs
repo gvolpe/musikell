@@ -23,8 +23,8 @@ data ArtistRepository m = ArtistRepository
 
 mkArtistRepository :: Pool Pipe -> IO (ArtistRepository IO)
 mkArtistRepository pool = pure $ ArtistRepository
-  { findArtist   = \n -> withResource pool (findArtist' n)
-  , createArtist = \a -> withResource pool (createArtist' a)
+  { findArtist   = withResource pool . findArtist'
+  , createArtist = withResource pool . createArtist'
   }
 
 findArtist' :: Text -> Pipe -> IO (Maybe Artist)
