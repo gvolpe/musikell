@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 
 -- | The Neo4j repository for Album, including interface and cypher queries.
 module Repository.Album
@@ -7,6 +7,7 @@ module Repository.Album
   )
 where
 
+import           Data.Foldable                  ( traverse_ )
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
 import           Data.Maybe                     ( fromMaybe )
@@ -15,33 +16,38 @@ import           Data.Text
 import           Database.Bolt
 import           Domain
 import           Repository.Mapper
+import           Repository.Song
 import           Utils                          ( headMaybe )
 
 data AlbumRepository m = AlbumRepository
   { findAlbum :: Text -> m (Maybe Album)
-  , createAlbum :: Album -> m ()
+  , createAlbum :: Album -> [Song] -> m ()
   }
 
-mkAlbumRepository :: Pool Pipe -> IO (AlbumRepository IO)
-mkAlbumRepository pool = pure $ AlbumRepository
+mkAlbumRepository :: Pool Pipe -> SongRepository IO -> IO (AlbumRepository IO)
+mkAlbumRepository pool songRepo = pure $ AlbumRepository
   { findAlbum   = withResource pool . findAlbum'
-  , createAlbum = withResource pool . createAlbum'
+  , createAlbum = \a songs -> do
+                    withResource pool (createAlbum' a) >>= \case
+                      Just nodeId -> traverse_ (createSong songRepo) songs
+                      Nothing     -> error "Failed to create album" -- FIXME: throw custom exception
   }
 
 findAlbum' :: Text -> Pipe -> IO (Maybe Album)
 findAlbum' t pipe = do
   records <- run pipe $ queryP
-    "MATCH (a:Album) WHERE a.title CONTAINS {title} RETURN a"
+    "MATCH (a:Album) WHERE a.name CONTAINS {title} RETURN a"
     (fromList [("title", T t)])
   pure $ headMaybe records >>= toNodeProps >>= toEntity
 
-createAlbum' :: Album -> Pipe -> IO ()
-createAlbum' a pipe = void . run pipe $ queryP
-  "CREATE (a:Album { name : {name}, released : {released}, length : {length}, studio : {studio} }) RETURN ID(a)"
-  (fromList
-    [ ("name"    , T (albumName a))
-    , ("released", I (albumReleased a))
-    , ("length"  , I (albumTotalLength a))
-    , ("studio"  , T (fromMaybe "" $ albumStudio a))
-    ]
-  )
+createAlbum' :: Album -> Pipe -> IO (Maybe NodeId)
+createAlbum' a pipe = do
+  records <- run pipe $ queryP
+    "CREATE (a:Album { name : {name}, released : {released}, length : {length} }) RETURN ID(a)"
+    (fromList
+      [ ("name"    , T (albumName a))
+      , ("released", I (albumReleasedYear a))
+      , ("length"  , I (albumTotalLength a))
+      ]
+    )
+  pure $ headMaybe records >>= toNodeId

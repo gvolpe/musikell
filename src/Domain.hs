@@ -3,6 +3,8 @@ module Domain where
 
 import           Data.Text
 
+newtype NodeId = NodeId { unNodeId :: Int } deriving Show
+
 data Artist = Artist
   { artistName :: Text
   , artistOrigin :: Text
@@ -10,9 +12,8 @@ data Artist = Artist
 
 data Album = Album
   { albumName :: Text
-  , albumReleased :: Int -- epoch: see what date library to picl
+  , albumReleasedYear :: Int
   , albumTotalLength :: Int
-  , albumStudio :: Maybe Text
   } deriving Show
 
 data Song = Song

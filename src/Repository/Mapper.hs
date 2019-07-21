@@ -26,7 +26,6 @@ instance NodeMapper Album where
       <$> (Map.lookup "name" p >>= exact :: Maybe Text)
       <*> (Map.lookup "released" p >>= exact :: Maybe Int)
       <*> (Map.lookup "length" p >>= exact :: Maybe Int)
-      <*> Just (Map.lookup "studio" p >>= exact :: Maybe Text)
 
 instance NodeMapper Song where
   toEntity p =
@@ -40,3 +39,6 @@ toNode record = record `at` "a" >>= exact
 
 toNodeProps :: Monad m => Record -> m NodeProps
 toNodeProps r = nodeProps <$> toNode r
+
+toNodeId :: NodeProps -> Maybe NodeId
+toNodeId p = NodeId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
