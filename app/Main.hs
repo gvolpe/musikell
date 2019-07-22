@@ -1,5 +1,8 @@
 module Main where
 
+import           Config                         ( AppConfig(..)
+                                                , loadConfig
+                                                )
 import           Http.Server                    ( serve )
 import           Repository.Album
 import           Repository.Artist
@@ -8,7 +11,8 @@ import           Repository.Neo
 
 program :: IO ()
 program = do
-  pool       <- mkPipePool
+  config     <- loadConfig
+  pool       <- mkPipePool (neo4j config)
   songRepo   <- mkSongRepository pool
   albumRepo  <- mkAlbumRepository pool
   artistRepo <- mkArtistRepository pool
@@ -19,4 +23,4 @@ program = do
   showAlbumSongs songRepo
 
 main :: IO ()
-main = serve
+main = loadConfig >>= serve
