@@ -20,7 +20,7 @@ Go to `localhost:3000/api` and start sending queries. Eg. using `Insomnia`:
 ```
 query GetArtist {
   artist (name: "Tool") {
-    fullName
+    name
     origin
   }
 }
@@ -32,7 +32,7 @@ query GetArtist {
 {
   "data": {
     "artist": {
-      "fullName": "Tool",
+      "name": "Tool",
       "origin": "Los Angeles, California, US"
     }
   }
