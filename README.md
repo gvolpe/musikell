@@ -13,6 +13,8 @@ docker run -it --rm -p7474:7474 -p7687:7687 --env NEO4J_AUTH=neo4j/test neo4j:la
 
 Go to `localhost:3000/api` and start sending queries. Eg. using `Insomnia`:
 
+![insomnia](insomnia.png)
+
 ##### Request
 
 ```
@@ -36,5 +38,3 @@ query GetArtist {
   }
 }
 ```
-
-![insomnia](insomnia.png)
