@@ -4,6 +4,8 @@
 -- | The GraphQL schema
 module Api.Schema where
 
+import           Api.Args.Artist                ( ArtistArgs )
+import qualified Api.Args.Artist               as Args
 import           Data.Functor                   ( (<&>) )
 import           Data.Morpheus.Kind             ( KIND
                                                 , OBJECT
@@ -13,11 +15,12 @@ import           Data.Morpheus.Types            ( GQLType(..)
                                                 , gqlResolver
                                                 )
 import           Data.Text
-import           Domain                         ( Artist(..)
-                                                , ArtistName(..)
-                                                )
 import           GHC.Generics                   ( Generic )
 import           Repository.Artist
+import           Repository.Entity              ( Artist
+                                                , ArtistName(..)
+                                                )
+import qualified Repository.Entity             as E
 import           Utils                          ( maybeToEither )
 
 data Query = Query
@@ -25,22 +28,18 @@ data Query = Query
   } deriving Generic
 
 data ArtistQL = ArtistQL
-  { fullName :: Text         -- Non-Nullable Field
+  { name :: Text             -- Non-Nullable Field
   , origin   :: Maybe Text   -- Nullable Field
   } deriving (Generic, GQLType)
 
 type instance KIND ArtistQL = OBJECT
 
-data ArtistArgs = ArtistArgs
-  { name   :: Text        -- Required Argument
-  } deriving Generic
-
 toArtistQL :: Artist -> ArtistQL
-toArtistQL a = ArtistQL (artistName a) (Just $ artistOrigin a)
+toArtistQL a = ArtistQL (E.artistName a) (Just $ E.artistOrigin a)
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
 resolveArtist repo args = gqlResolver result where
-  result = findArtist repo (ArtistName $ name args) <&> \case
+  result = findArtist repo (ArtistName $ Args.name args) <&> \case
     Just a  -> Right $ toArtistQL a
     Nothing -> Left "No hits"
 

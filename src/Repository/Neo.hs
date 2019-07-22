@@ -8,9 +8,9 @@ import           Data.Foldable                  ( traverse_ )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
-import           Domain
 import           Repository.Album
 import           Repository.Artist
+import           Repository.Entity
 import           Repository.Song
 
 -- TODO: Use configuration file to store connection details

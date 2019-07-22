@@ -13,7 +13,7 @@ import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
-import           Domain
+import           Repository.Entity
 import           Repository.Mapper
 import           Repository.Song
 import           Utils                          ( headMaybe )

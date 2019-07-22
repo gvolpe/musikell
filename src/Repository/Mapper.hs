@@ -8,7 +8,7 @@ import qualified Data.Map                      as Map
 import           Data.Maybe                     ( maybeToList )
 import           Data.Text
 import           Database.Bolt
-import           Domain
+import           Repository.Entity
 import           Utils                          ( headMaybe )
 
 type NodeProps = Map Text Value

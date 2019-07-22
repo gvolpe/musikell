@@ -1,5 +1,5 @@
--- | The Domain model.
-module Domain where
+-- | The Neo4j entity model.
+module Repository.Entity where
 
 import           Data.Text
 
