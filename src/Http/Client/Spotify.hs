@@ -20,6 +20,7 @@ import           GHC.Natural                    ( naturalToInt
 import           Http.Client.Params
 import           Http.Client.Response
 import           Network.Wreq
+import           Network.Wreq.Types             ( Postable )
 
 login :: SpotifyConfig -> IO AccessToken
 login c =
@@ -31,8 +32,7 @@ login c =
       body = ["grant_type" := ("client_credentials" :: Text)]
   in  reqP ops url body
 
-getArtistAlbums
-  :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
+getArtistAlbums :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
 getArtistAlbums c t a =
   let url   = apiUri c <> "/artists/" <> unArtistId a <> "/albums"
       token = "Bearer " <> encodeUtf8 (unAccessToken t)
@@ -44,7 +44,6 @@ req :: forall a . FromJSON a => Options -> Text -> IO a
 req ops url =
   (^. responseBody) <$> (asJSON =<< getWith ops (unpack url) :: IO (Response a))
 
--- TODO: Raise issue in wreq to export Postable class
-reqP :: forall a . FromJSON a => Options -> String -> [FormParam] -> IO a
+reqP :: forall a b . (FromJSON a, Postable b) => Options -> String -> b -> IO a
 reqP ops url body =
   (^. responseBody) <$> (asJSON =<< postWith ops url body :: IO (Response a))
