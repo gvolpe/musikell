@@ -1,6 +1,9 @@
 {-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 
-module Service.DataLoader where
+module Service.DataLoader
+  ( loadData
+  )
+where
 
 import           Config
 import           Control.Concurrent.Async       ( mapConcurrently
@@ -25,16 +28,16 @@ import           Repository.Entity       hiding ( ArtistId )
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
-program :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
-program cfg artistRepo albumRepo = do
+loadData :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
+loadData cfg artistRepo albumRepo = do
   responses <- spotifyCall cfg
-  persistData (artists `zip` responses) artistRepo albumRepo
+  persistData ((fst <$> artists) `zip` responses) artistRepo albumRepo
 
 spotifyCall :: SpotifyConfig -> IO [AlbumResponse]
 spotifyCall cfg = do
   token <- login cfg
   print token
-  mapConcurrently (getArtistAlbums cfg token) ids
+  mapConcurrently (getArtistAlbums cfg token) (snd <$> artists)
 
 persistData
   :: [(Artist, AlbumResponse)]
@@ -59,41 +62,16 @@ toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3000 --
 respToAlbum :: AlbumResponse -> [Album]
 respToAlbum resp = toAlbum <$> R.items resp
 
-apc = ArtistId "4DFhHyjvGYa9wxdHUjtDkc"
-contortionist = ArtistId "7nCgNmfYJcsVy3vOOzExYS"
-davidmaximmicic = ArtistId "0wQa1N4q3HmLwxqkpVcYhs"
-dreamTheater = ArtistId "2aaLAng2L2aWD2FClzwiep"
-earthside = ArtistId "6mRDRKsNautYuxybddnvgg"
-leprous = ArtistId "4lgrzShsg2FLA89UM2fdO5"
-opeth = ArtistId "0ybFZ2Ab08V8hueghSXm6E"
-persefone = ArtistId "4wxyib7wQwVxwKNFBmOhAw"
-porcupineTree = ArtistId "5NXHXK6hOCotCF8lvGM1I0"
-riverside = ArtistId "5yjbUO1Jocui7RKE30zfLT"
-
-ids :: [ArtistId]
-ids =
-  [ apc
-  , contortionist
-  , davidmaximmicic
-  , dreamTheater
-  , earthside
-  , leprous
-  , opeth
-  , persefone
-  , porcupineTree
-  , riverside
-  ]
-
-artists :: [Artist]
+artists :: [(Artist, ArtistId)]
 artists =
-  [ Artist "A Perfect Circle"  "Los Angeles, California, US"
-  , Artist "The Contortionist" "Indianapolis, Indiana, US"
-  , Artist "David Maxim Micic" "Dubrovnik, Croatia"
-  , Artist "Dream Theater"     "Boston, Massachusetts, US"
-  , Artist "Earthside"         "New England, US"
-  , Artist "Leprous"           "Notodden, Norway"
-  , Artist "Opeth"             "Stockholm, Sweden"
-  , Artist "Persefone"         "Andorra"
-  , Artist "Porcupine Tree"    "Hemel Hempstead, UK"
-  , Artist "Riverside"         "Warsaw, Poland"
+  [ (Artist "A Perfect Circle"  "Los Angeles, California, US", ArtistId "4DFhHyjvGYa9wxdHUjtDkc")
+  , (Artist "The Contortionist" "Indianapolis, Indiana, US", ArtistId "7nCgNmfYJcsVy3vOOzExYS")
+  , (Artist "David Maxim Micic" "Dubrovnik, Croatia", ArtistId "0wQa1N4q3HmLwxqkpVcYhs")
+  , (Artist "Dream Theater"     "Boston, Massachusetts, US", ArtistId "2aaLAng2L2aWD2FClzwiep")
+  , (Artist "Earthside"         "New England, US", ArtistId "6mRDRKsNautYuxybddnvgg")
+  , (Artist "Leprous"           "Notodden, Norway", ArtistId "4lgrzShsg2FLA89UM2fdO5")
+  , (Artist "Opeth"             "Stockholm, Sweden", ArtistId "0ybFZ2Ab08V8hueghSXm6E")
+  , (Artist "Persefone"         "Andorra", ArtistId "4wxyib7wQwVxwKNFBmOhAw")
+  , (Artist "Porcupine Tree"    "Hemel Hempstead, UK", ArtistId "5NXHXK6hOCotCF8lvGM1I0")
+  , (Artist "Riverside"         "Warsaw, Poland", ArtistId "5yjbUO1Jocui7RKE30zfLT")
   ]
