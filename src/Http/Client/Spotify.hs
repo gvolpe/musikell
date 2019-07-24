@@ -38,7 +38,9 @@ getArtistAlbums c t a =
       token = "Bearer " <> encodeUtf8 (unAccessToken t)
       auth  = header "Authorization" .~ [token]
       ops   = defaults & param "limit" .~ ["50"] & auth
-  in  req ops url
+  in  do
+        putStrLn $ "Retrieving Spotify data for artist " <> show (unArtistId a)
+        req ops url
 
 req :: forall a . FromJSON a => Options -> Text -> IO a
 req ops url =

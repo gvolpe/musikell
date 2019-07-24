@@ -3,10 +3,14 @@
 module Service.DataLoader where
 
 import           Config
-import           Data.Foldable                  ( traverse_ )
+import           Control.Concurrent.Async       ( mapConcurrently
+                                                , mapConcurrently_
+                                                )
 import           Data.Functor                   ( void )
 import           Data.Maybe                     ( fromMaybe )
-import           Data.Text                      ( Text )
+import           Data.Text                      ( Text
+                                                , unpack
+                                                )
 import           Http.Client.Params             ( ArtistId(..) )
 import qualified Http.Client.Response          as R
 import           Http.Client.Response           ( AlbumItem
@@ -30,25 +34,24 @@ spotifyCall :: SpotifyConfig -> IO [AlbumResponse]
 spotifyCall cfg = do
   token <- login cfg
   print token
-  traverse (getArtistAlbums cfg token) ids
+  mapConcurrently (getArtistAlbums cfg token) ids
 
 persistData
   :: [(Artist, AlbumResponse)]
   -> ArtistRepository IO
   -> AlbumRepository IO
   -> IO ()
-persistData (x : xs) artistRepo albumRepo = do
+persistData (x : xs) artistRepo albumRepo =
   createArtist artistRepo (fst x) >>= \case
     Just artistId -> do
-      putStrLn $ "Persisting albums of " ++ show (fst x)
-      -- traverse in parallel
-      traverse_ (createAlbum albumRepo artistId) (respToAlbum $ snd x)
+      putStrLn $ "Persisting albums of " <> show (fst x)
+      mapConcurrently_ (createAlbum albumRepo artistId) (respToAlbum $ snd x)
       persistData xs artistRepo albumRepo
     Nothing -> putStrLn "No artist"
 persistData [] _ _ = putStrLn "Nothing else to persist"
 
 dateToYear :: Text -> Int
-dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (show txt))
+dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))
 
 toAlbum :: AlbumItem -> Album
 toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3000 -- TODO: Take this data from Spotify
