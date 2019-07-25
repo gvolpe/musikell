@@ -15,7 +15,21 @@ data AlbumItem = AlbumItem
   } deriving (Generic, Show)
 
 newtype AlbumResponse = AlbumResponse
-  { items :: [AlbumItem]
+  { albumItems :: [AlbumItem]
+  } deriving (Generic, Show)
+
+data ArtistItem = ArtistItem
+  { artistId :: Text
+  , artistName :: Text
+  } deriving (Generic, Show)
+
+newtype ArtistObject = ArtistObject
+  { artistItems :: [ArtistItem]
+  } deriving (Generic, Show)
+
+-- TODO: See if this can be simplified
+newtype ArtistResponse = ArtistResponse
+  { artistObject :: ArtistObject
   } deriving (Generic, Show)
 
 instance FromJSON AlbumItem where
@@ -24,4 +38,19 @@ instance FromJSON AlbumItem where
     <*> v .: "name"
     <*> v .: "release_date"
 
-instance FromJSON AlbumResponse
+instance FromJSON AlbumResponse where
+  parseJSON = withObject "items" $ \v -> AlbumResponse
+    <$> v .: "items"
+
+instance FromJSON ArtistItem where
+  parseJSON = withObject "item" $ \v -> ArtistItem
+    <$> v .: "id"
+    <*> v .: "name"
+
+instance FromJSON ArtistObject where
+  parseJSON = withObject "items" $ \v -> ArtistObject
+    <$> v .: "items"
+
+instance FromJSON ArtistResponse where
+  parseJSON = withObject "artists" $ \v -> ArtistResponse
+    <$> v .: "artists"

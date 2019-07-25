@@ -14,30 +14,43 @@ import           Data.Maybe                     ( fromMaybe )
 import           Data.Text                      ( Text
                                                 , unpack
                                                 )
-import           Http.Client.Params             ( ArtistId(..) )
+import           Http.Client.Params             ( ArtistId(..)
+                                                , ArtistName(..)
+                                                , AccessToken
+                                                )
 import qualified Http.Client.Response          as R
 import           Http.Client.Response           ( AlbumItem
                                                 , AlbumResponse
+                                                , ArtistItem
                                                 )
 import           Http.Client.Spotify            ( getArtistAlbums
                                                 , login
+                                                , searchArtist
                                                 )
 import           Repository.Album
 import           Repository.Artist
-import           Repository.Entity       hiding ( ArtistId )
+import           Repository.Entity       hiding ( ArtistId
+                                                , ArtistName
+                                                )
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
 loadData :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
 loadData cfg artistRepo albumRepo = do
-  responses <- spotifyCall cfg
-  persistData ((fst <$> artists) `zip` responses) artistRepo albumRepo
-
-spotifyCall :: SpotifyConfig -> IO [AlbumResponse]
-spotifyCall cfg = do
   token <- login cfg
   print token
-  mapConcurrently (getArtistAlbums cfg token) (snd <$> artists)
+  artists <- getArtistsByName cfg token artistNames
+  let ids = ArtistId . artistSpotifyId <$> artists
+  responses <- getAlbums cfg token ids
+  persistData (artists `zip` responses) artistRepo albumRepo
+
+getArtistsByName :: SpotifyConfig -> AccessToken -> [ArtistName] -> IO [Artist]
+getArtistsByName cfg token names = do
+  responses <- mapConcurrently (searchArtist cfg token) names
+  pure $ toArtist <$> (responses >>= R.artistItems . R.artistObject)
+
+getAlbums :: SpotifyConfig -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
+getAlbums cfg token ids = mapConcurrently (getArtistAlbums cfg token) ids
 
 persistData
   :: [(Artist, AlbumResponse)]
@@ -48,30 +61,32 @@ persistData (x : xs) artistRepo albumRepo =
   createArtist artistRepo (fst x) >>= \case
     Just artistId -> do
       putStrLn $ "Persisting albums of " <> show (fst x)
-      mapConcurrently_ (createAlbum albumRepo artistId) (respToAlbum $ snd x)
+      let albums = toAlbum <$> R.albumItems (snd x)
+      mapConcurrently_ (createAlbum albumRepo artistId) albums
       persistData xs artistRepo albumRepo
     Nothing -> putStrLn "No artist"
 persistData [] _ _ = putStrLn "Nothing else to persist"
 
-dateToYear :: Text -> Int
-dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))
+toArtist :: ArtistItem -> Artist
+toArtist it = Artist (R.artistName it) (R.artistId it)
 
 toAlbum :: AlbumItem -> Album
 toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3000 -- TODO: Take this data from Spotify
 
-respToAlbum :: AlbumResponse -> [Album]
-respToAlbum resp = toAlbum <$> R.items resp
+dateToYear :: Text -> Int
+dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))
 
-artists :: [(Artist, ArtistId)]
-artists =
-  [ (Artist "A Perfect Circle"  "Los Angeles, California, US", ArtistId "4DFhHyjvGYa9wxdHUjtDkc")
-  , (Artist "The Contortionist" "Indianapolis, Indiana, US", ArtistId "7nCgNmfYJcsVy3vOOzExYS")
-  , (Artist "David Maxim Micic" "Dubrovnik, Croatia", ArtistId "0wQa1N4q3HmLwxqkpVcYhs")
-  , (Artist "Dream Theater"     "Boston, Massachusetts, US", ArtistId "2aaLAng2L2aWD2FClzwiep")
-  , (Artist "Earthside"         "New England, US", ArtistId "6mRDRKsNautYuxybddnvgg")
-  , (Artist "Leprous"           "Notodden, Norway", ArtistId "4lgrzShsg2FLA89UM2fdO5")
-  , (Artist "Opeth"             "Stockholm, Sweden", ArtistId "0ybFZ2Ab08V8hueghSXm6E")
-  , (Artist "Persefone"         "Andorra", ArtistId "4wxyib7wQwVxwKNFBmOhAw")
-  , (Artist "Porcupine Tree"    "Hemel Hempstead, UK", ArtistId "5NXHXK6hOCotCF8lvGM1I0")
-  , (Artist "Riverside"         "Warsaw, Poland", ArtistId "5yjbUO1Jocui7RKE30zfLT")
-  ]
+artistNames :: [ArtistName]
+artistNames =
+  ArtistName
+    <$> [ "A Perfect Circle"
+        , "The Contortionist"
+        , "David Maxim Micic"
+        , "Dream Theater"
+        , "Earthside"
+        , "Leprous"
+        , "Opeth"
+        , "Persefone"
+        , "Porcupine Tree"
+        , "Riverside"
+        ]

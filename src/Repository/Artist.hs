@@ -36,6 +36,6 @@ findArtist' a pipe = toEntityMaybe "a" <$> stmt where
 createArtist' :: Artist -> Pipe -> IO (Maybe ArtistId)
 createArtist' a pipe = do
   records <- run pipe $ queryP
-    "CREATE (a:Artist { name : {name}, origin : {origin} }) RETURN ID(a)"
-    (fromList [("name", T (artistName a)), ("origin", T (artistOrigin a))])
+    "CREATE (a:Artist { name : {name}, spotifyId : {spotifyId} }) RETURN ID(a)"
+    (fromList [("name", T (artistName a)), ("spotifyId", T (artistSpotifyId a))])
   pure $ headMaybe records >>= toArtistId

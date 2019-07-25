@@ -8,6 +8,7 @@ import           GHC.Generics                   ( Generic )
 
 newtype AccessToken = AccessToken { unAccessToken :: Text } deriving (Generic, Show)
 newtype ArtistId = ArtistId { unArtistId :: Text } deriving Show
+newtype ArtistName = ArtistName { unArtistName :: Text } deriving Show
 
 instance FromJSON AccessToken where
   parseJSON = withObject "f" $ \v -> AccessToken

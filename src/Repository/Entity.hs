@@ -12,7 +12,7 @@ newtype SongName = SongName { unSongName :: Text } deriving Show
 
 data Artist = Artist
   { artistName :: Text
-  , artistOrigin :: Text
+  , artistSpotifyId :: Text
   } deriving Show
 
 data Album = Album

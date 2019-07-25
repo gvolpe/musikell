@@ -5,10 +5,10 @@ module Main where
 import           Config                         ( AppConfig(..)
                                                 , loadConfig
                                                 )
-import           Http.Client.Params             ( ArtistId(..) )
-import           Http.Client.Spotify            ( getArtistAlbums
-                                                , login
+import           Http.Client.Params             ( ArtistId(..)
+                                                , ArtistName(..)
                                                 )
+import           Http.Client.Spotify
 import           Http.Server                    ( serve )
 import           Repository.Album
 import           Repository.Artist
@@ -32,9 +32,9 @@ p2 :: AppConfig -> IO ()
 p2 c = do
   token <- login (spotify c)
   print token
-  let pt = ArtistId "5NXHXK6hOCotCF8lvGM1I0"
-  albums <- getArtistAlbums (spotify c) token pt
-  print albums
+  let tool = ArtistName "Porcupine Tree"
+  artist <- searchArtist (spotify c) token tool
+  print artist
 
 p3 :: AppConfig -> IO ()
 p3 c = do

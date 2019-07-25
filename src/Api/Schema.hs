@@ -28,14 +28,14 @@ data Query = Query
   } deriving Generic
 
 data ArtistQL = ArtistQL
-  { name :: Text             -- Non-Nullable Field
-  , origin   :: Maybe Text   -- Nullable Field
+  { name :: Text              -- Non-Nullable Field
+  , spotifyId :: Maybe Text   -- Nullable Field
   } deriving (Generic, GQLType)
 
 type instance KIND ArtistQL = OBJECT
 
 toArtistQL :: Artist -> ArtistQL
-toArtistQL a = ArtistQL (E.artistName a) (Just $ E.artistOrigin a)
+toArtistQL a = ArtistQL (E.artistName a) (Just $ E.artistSpotifyId a)
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
 resolveArtist repo args = gqlResolver result where

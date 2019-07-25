@@ -3,6 +3,7 @@
 module Http.Client.Spotify
   ( getArtistAlbums
   , login
+  , searchArtist
   )
 where
 
@@ -40,6 +41,19 @@ getArtistAlbums c t a =
       ops   = defaults & param "limit" .~ ["50"] & auth
   in  do
         putStrLn $ "Retrieving Spotify data for artist " <> show (unArtistId a)
+        req ops url
+
+searchArtist :: SpotifyConfig -> AccessToken -> ArtistName -> IO ArtistResponse
+searchArtist c t n =
+  let url   = apiUri c <> "/search"
+      token = "Bearer " <> encodeUtf8 (unAccessToken t)
+      auth  = header "Authorization" .~ [token]
+      query = param "q" .~ [unArtistName n]
+      atype = param "type" .~ ["artist"]
+      limit = param "limit" .~ ["1"]
+      ops   = defaults & query & atype & limit & auth
+  in  do
+        putStrLn $ "Find artist by name on Spotify " <> show (unArtistName n)
         req ops url
 
 req :: forall a . FromJSON a => Options -> Text -> IO a
