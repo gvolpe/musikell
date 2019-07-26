@@ -50,7 +50,7 @@ getArtistsByName cfg token names = do
   pure $ toArtist <$> (responses >>= R.artistItems . R.artistObject)
 
 getAlbums :: SpotifyConfig -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
-getAlbums cfg token ids = mapConcurrently (getArtistAlbums cfg token) ids
+getAlbums cfg token = mapConcurrently (getArtistAlbums cfg token)
 
 persistData
   :: [(Artist, AlbumResponse)]
@@ -70,8 +70,9 @@ persistData [] _ _ = putStrLn "Nothing else to persist"
 toArtist :: ArtistItem -> Artist
 toArtist it = Artist (R.artistName it) (R.artistId it)
 
+-- TODO: Calculate totalLength from the album's tracks (need to implement this on the Spotify client)
 toAlbum :: AlbumItem -> Album
-toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3000 -- TODO: Take this data from Spotify
+toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3456
 
 dateToYear :: Text -> Int
 dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))

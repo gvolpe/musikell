@@ -18,7 +18,11 @@ build-type:          Simple
 extra-source-files:  CHANGELOG.md
 
 library
-  exposed-modules:     Api.Args.Artist
+  exposed-modules:     Api.Args.Album
+                     , Api.Args.Artist
+                     , Api.Dependencies
+                     , Api.Domain.AlbumQL
+                     , Api.Domain.ArtistQL
                      , Api.Root
                      , Api.Schema
                      , Config

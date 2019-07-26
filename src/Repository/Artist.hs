@@ -7,7 +7,9 @@ module Repository.Artist
   )
 where
 
-import           Data.Functor                   ( void )
+import           Data.Functor                   ( (<&>)
+                                                , void
+                                                )
 import           Data.Map                       ( fromList )
 import           Data.Pool
 import           Data.Text

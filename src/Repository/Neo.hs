@@ -21,27 +21,27 @@ mkPipePool c = createPool acquire release 1 3600 10 where
 
 showArtist :: ArtistRepository IO -> IO ()
 showArtist repo = do
-  artist <- findArtist repo (ArtistName "Tool")
+  artist <- findArtist repo (ArtistName "Porcupine")
   print artist
 
 showAlbum :: AlbumRepository IO -> IO ()
 showAlbum repo = do
-  album <- findAlbum repo (AlbumName "10.000 Days")
+  album <- findAlbum repo (AlbumName "In Absentia")
   print album
 
 showArtistAlbums :: AlbumRepository IO -> IO ()
 showArtistAlbums repo = do
-  albums <- findAlbumsByArtist repo (ArtistName "Tool")
+  albums <- findAlbumsByArtist repo (ArtistName "Dream")
   print albums
 
 showAlbumSongs :: SongRepository IO -> IO ()
 showAlbumSongs repo = do
-  songs <- findSongsByAlbum repo (AlbumName "10.000")
+  songs <- findSongsByAlbum repo (AlbumName "Octavarium")
   print songs
 
 showArtistSongs :: SongRepository IO -> IO ()
 showArtistSongs repo = do
-  songs <- findSongsByArtist repo (ArtistName "Tool")
+  songs <- findSongsByArtist repo (ArtistName "Earthside")
   print songs
 
 -- TODO: Use MaybeT

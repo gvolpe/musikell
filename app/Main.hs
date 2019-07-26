@@ -22,7 +22,6 @@ p1 c = do
   songRepo   <- mkSongRepository pool
   albumRepo  <- mkAlbumRepository pool
   artistRepo <- mkArtistRepository pool
-  --createData artistRepo albumRepo songRepo
   showArtist artistRepo
   --showAlbum albumRepo
   showArtistAlbums albumRepo
@@ -44,4 +43,4 @@ p3 c = do
   loadData (spotify c) artistRepo albumRepo
 
 main :: IO ()
-main = loadConfig >>= p3
+main = loadConfig >>= serve

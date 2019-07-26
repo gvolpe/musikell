@@ -1,10 +1,10 @@
 {-# LANGUAGE DeriveGeneric #-}
 
-module Api.Args.Artist where
+module Api.Args.Album where
 
 import           Data.Text
 import           GHC.Generics                   ( Generic )
 
-newtype ArtistArgs = ArtistArgs
+newtype AlbumArgs = AlbumArgs
   { name   :: Text        -- Required Argument
-  } deriving (Generic, Show)
+  } deriving Generic

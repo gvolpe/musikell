@@ -20,7 +20,7 @@ instance NodeMapper Artist where
   toEntity p =
     Artist
       <$> (Map.lookup "name" p >>= exact :: Maybe Text)
-      <*> (Map.lookup "origin" p >>= exact :: Maybe Text)
+      <*> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
 
 instance NodeMapper Album where
   toEntity p =
