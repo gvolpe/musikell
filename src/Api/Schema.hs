@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
 {-# LANGUAGE BlockArguments, LambdaCase #-}
 
 -- | The GraphQL schema
@@ -26,7 +26,7 @@ import           Data.Text
 import           GHC.Generics                   ( Generic )
 import           Repository.Album
 import           Repository.Artist
-import           Repository.Entity              ( Artist
+import           Repository.Entity              ( Artist(..)
                                                 , ArtistName(..)
                                                 )
 import qualified Repository.Entity             as E
@@ -35,6 +35,10 @@ import           Utils                          ( maybeToEither )
 data Query = Query
   { artist :: ArtistArgs -> ResM ArtistQL
   , albumsByArtist :: AlbumArgs -> ResM [AlbumQL]
+  } deriving Generic
+
+data Mutation = Mutation
+  { newArtist :: ArtistArgs -> ResM ArtistQL
   } deriving Generic
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
@@ -49,8 +53,18 @@ resolveAlbumsByArtist repo args = gqlResolver result where
     [] -> Left "No hits"
     xs -> Right $ toAlbumQL <$> xs
 
+newArtistMutation :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
+newArtistMutation repo args =
+  let artist = Artist (Args.name args) "hardcoded-id"
+  in  gqlResolver $ createArtist repo artist <&> \case
+        Just _  -> Right $ toArtistQL artist
+        Nothing -> Left "Failed to create new artist"
+
 resolveQuery :: AlbumRepository IO -> ArtistRepository IO -> Query
 resolveQuery albumRepo artistRepo = Query
   { artist         = resolveArtist artistRepo
   , albumsByArtist = resolveAlbumsByArtist albumRepo
   }
+
+resolveMutation :: ArtistRepository IO -> Mutation
+resolveMutation repo = Mutation { newArtist = newArtistMutation repo }

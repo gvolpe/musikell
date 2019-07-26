@@ -1,18 +1,20 @@
 module Api.Root where
 
 import           Api.Dependencies
-import           Api.Schema                     ( Query
+import           Api.Schema                     ( Mutation
+                                                , Query
+                                                , resolveMutation
                                                 , resolveQuery
                                                 )
 import           Data.ByteString.Lazy           ( ByteString )
 import           Data.Morpheus                  ( interpreter )
 import           Data.Morpheus.Types            ( GQLRootResolver(..) )
 
-rootResolver :: Deps -> GQLRootResolver IO Query () ()
+rootResolver :: Deps -> GQLRootResolver IO Query Mutation ()
 rootResolver deps = GQLRootResolver
-  { queryResolver        = return $ resolveQuery (albumRepository deps)
-                                                 (artistRepository deps)
-  , mutationResolver     = return () -- TODO: mutation that calls loadData
+  { queryResolver        = pure $ resolveQuery (albumRepository deps)
+                                               (artistRepository deps)
+  , mutationResolver     = pure $ resolveMutation (artistRepository deps)
   , subscriptionResolver = return ()
   }
 
