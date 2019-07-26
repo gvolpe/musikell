@@ -22,7 +22,7 @@ import qualified Repository.Entity             as E
 
 data AlbumQL = AlbumQL
   { name :: Text
-  , yearOfReleased :: Int
+  , yearOfRelease :: Int
   , totalLength :: Text
   } deriving (Generic, GQLType)
 
