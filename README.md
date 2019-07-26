@@ -15,26 +15,40 @@ Go to `localhost:3000/api` and start sending queries. Eg. using `Insomnia`:
 
 ![insomnia](insomnia.png)
 
-##### Request
+### Queries
+
+##### Get Artist
 
 ```
 query GetArtist {
   artist (name: "Tool") {
     name
-    origin
+    spotifyId
   }
 }
 ```
 
-##### Response
+##### Get Albums by Artist
 
-```json
-{
-  "data": {
-    "artist": {
-      "name": "Tool",
-      "origin": "Los Angeles, California, US"
-    }
+```
+query GetAlbumsByArtist {
+  albumsByArtist (name: "Opeth") {
+    name
+    yearOfReleased
+    totalLength
+  }
+}
+```
+
+### Mutations
+
+##### Create Artist
+
+```
+mutation CreateArtist {
+  newArtist(name: "Porcupine Tree") {
+    name
+    spotifyId
   }
 }
 ```
