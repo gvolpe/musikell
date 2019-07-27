@@ -12,11 +12,11 @@ import           Repository.Entity              ( Artist )
 import qualified Repository.Entity             as E
 
 data ArtistQL = ArtistQL
-  { spotifyId :: Maybe Text   -- Nullable Field
-  , name :: Text              -- Non-Nullable Field
+  { spotifyId :: Text
+  , name :: Text
   } deriving (Generic, GQLType)
 
 type instance KIND ArtistQL = OBJECT
 
 toArtistQL :: Artist -> ArtistQL
-toArtistQL a = ArtistQL (Just $ E.artistSpotifyId a) (E.artistName a)
+toArtistQL a = ArtistQL (E.unArtistSpotifyId (E.artistSpotifyId a)) (E.artistName a)

@@ -2,7 +2,7 @@
 
 module Api.Args.Artist where
 
-import           Data.Text
+import           Data.Text                      ( Text )
 import           GHC.Generics                   ( Generic )
 
 newtype ArtistArgs = ArtistArgs

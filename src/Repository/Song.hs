@@ -51,21 +51,21 @@ findSongsByArtist' a pipe = toEntityList "s" <$> stmt where
     "MATCH (a:Artist)-[:HAS_SONG]->(s:Song) WHERE a.name CONTAINS {artistName} RETURN s"
     (fromList [("artistName", T (unArtistName a))])
 
---createSong' :: ArtistId -> AlbumId -> Song -> Pipe -> IO ()
---createSong' artistId albumId s pipe = void . run pipe $ queryP
---  (  "MATCH (a:Artist), (b:Album) WHERE ID(a)={artistId} AND ID(b)={albumId} "
---  <> "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) "
---  <> "CREATE (b)-[hb:HAS_SONG]->(s) "
---  <> "CREATE (a)-[ha:HAS_SONG]->(s) "
---  <> "CREATE (s)-[fb:FROM_ALBUM]->(b) "
---  <> "CREATE (s)-[fa:FROM_ARTIST]->(a) "
---  <> "RETURN ID(s)"
---  )
---  (fromList
---    [ ("artistId", I (unArtistId artistId))
---    , ("albumId" , I (unAlbumId albumId))
---    , ("no"      , I (songNo s))
---    , ("title"   , T (songTitle s))
---    , ("duration", I (songDuration s))
---    ]
---  )
+createSong' :: ArtistSpotifyId -> AlbumSpotifyId -> Song -> Pipe -> IO ()
+createSong' artistId albumId s pipe = void . run pipe $ queryP
+  (  "MATCH (a:Artist), (b:Album) WHERE a.spotifyId={artistId} AND b.spotifyId={albumId} "
+  <> "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) "
+  <> "CREATE (b)-[hb:HAS_SONG]->(s) "
+  <> "CREATE (a)-[ha:HAS_SONG]->(s) "
+  <> "CREATE (s)-[fb:FROM_ALBUM]->(b) "
+  <> "CREATE (s)-[fa:FROM_ARTIST]->(a) "
+  <> "RETURN ID(s)"
+  )
+  (fromList
+    [ ("artistId", T (unArtistSpotifyId artistId))
+    , ("albumId" , T (unAlbumSpotifyId albumId))
+    , ("no"      , I (songNo s))
+    , ("title"   , T (songTitle s))
+    , ("duration", I (songDuration s))
+    ]
+  )

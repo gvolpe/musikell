@@ -24,7 +24,8 @@ library
                      , Api.Domain.AlbumQL
                      , Api.Domain.ArtistQL
                      , Api.Root
-                     , Api.Schema
+                     , Api.Schema.Mutation
+                     , Api.Schema.Query
                      , Config
                      , Http.Client.Params
                      , Http.Client.Response

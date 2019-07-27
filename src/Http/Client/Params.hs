@@ -3,7 +3,7 @@
 module Http.Client.Params where
 
 import           Data.Aeson
-import           Data.Text
+import           Data.Text                      ( Text )
 import           GHC.Generics                   ( Generic )
 
 newtype AccessToken = AccessToken { unAccessToken :: Text } deriving (Generic, Show)

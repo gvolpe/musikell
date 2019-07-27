@@ -20,7 +20,7 @@ import           Utils                          ( headMaybe )
 
 data ArtistRepository m = ArtistRepository
   { findArtist :: ArtistName -> m (Maybe Artist)
-  , createArtist :: Artist -> m (Maybe SpotifyId)
+  , createArtist :: Artist -> m (Maybe ArtistSpotifyId)
   }
 
 mkArtistRepository :: Pool Pipe -> IO (ArtistRepository IO)
@@ -35,9 +35,13 @@ findArtist' a pipe = toEntityMaybe "a" <$> stmt where
     "MATCH (a:Artist) WHERE a.name CONTAINS {name} RETURN a"
     (fromList [("name", T (unArtistName a))])
 
-createArtist' :: Artist -> Pipe -> IO (Maybe SpotifyId)
+createArtist' :: Artist -> Pipe -> IO (Maybe ArtistSpotifyId)
 createArtist' a pipe = do
   records <- run pipe $ queryP
     "CREATE (a:Artist { name : {name}, spotifyId : {spotifyId} }) RETURN a.spotifyId"
-    (fromList [("name", T (artistName a)), ("spotifyId", T (artistSpotifyId a))])
+    (fromList
+      [ ("name"     , T (artistName a))
+      , ("spotifyId", T (unArtistSpotifyId $ artistSpotifyId a))
+      ]
+    )
   pure $ headMaybe records >>= toArtistSpotifyId

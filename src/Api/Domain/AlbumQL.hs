@@ -20,10 +20,11 @@ import           Data.Text                      ( Text
 import           GHC.Generics                   ( Generic )
 import           Repository.Entity              ( Album )
 import qualified Repository.Entity             as E
+import           Text.Read                      ( readMaybe )
 
--- TODO: Add spotifyId
 data AlbumQL = AlbumQL
-  { name :: Text
+  { spotifyId :: Text
+  , name :: Text
   , yearOfRelease :: Int
   , totalLength :: Text
   } deriving (Generic, GQLType)
@@ -38,10 +39,10 @@ addZero x | x == "0"      = "00"
 addHour :: Text -> Maybe (Text, Text)
 addHour mins
   | length mins == 3
-  = let mins'   = read (unpack mins) :: Int
-        hours   = pack . show $ mins' `div` 60
-        newMins = pack . show $ mins' `mod` 60
-    in  Just (hours, newMins)
+  = let mins'   = readMaybe (unpack mins) :: Maybe Int
+        hours   = fmap (\m -> pack . show $ m `div` 60) mins'
+        newMins = fmap (\m -> pack . show $ m `mod` 60) mins'
+    in  (,) <$> hours <*> newMins
   | otherwise
   = Nothing
 
@@ -56,6 +57,7 @@ lengthFormatted x =
         Nothing     -> noHour mins
 
 toAlbumQL :: Album -> AlbumQL
-toAlbumQL a = AlbumQL (E.albumName a)
+toAlbumQL a = AlbumQL (E.unAlbumSpotifyId (E.albumSpotifyId a))
+                      (E.albumName a)
                       (E.albumReleasedYear a)
                       (lengthFormatted $ E.albumTotalLength a)

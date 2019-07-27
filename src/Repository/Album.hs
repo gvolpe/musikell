@@ -22,15 +22,17 @@ import           Utils                          ( headMaybe )
 data AlbumRepository m = AlbumRepository
   { findAlbum :: AlbumName -> m (Maybe Album)
   , findAlbumsByArtist :: ArtistName -> m [Album]
-  , createAlbum :: SpotifyId -> Album -> m (Maybe SpotifyId)
+  , findAlbumsByArtistId :: ArtistSpotifyId -> m [Album]
+  , createAlbum :: ArtistSpotifyId -> Album -> m (Maybe AlbumSpotifyId)
   }
 
 mkAlbumRepository :: Pool Pipe -> IO (AlbumRepository IO)
 mkAlbumRepository pool = pure $ AlbumRepository
-  { findAlbum          = withResource pool . findAlbum'
-  , findAlbumsByArtist = withResource pool . findAlbumsByArtist'
-  , createAlbum        = \spotifyId album ->
-                           withResource pool (createAlbum' spotifyId album)
+  { findAlbum            = withResource pool . findAlbum'
+  , findAlbumsByArtist   = withResource pool . findAlbumsByArtist'
+  , findAlbumsByArtistId = withResource pool . findAlbumsByArtistId'
+  , createAlbum          = \spotifyId album ->
+                             withResource pool (createAlbum' spotifyId album)
   }
 
 findAlbum' :: AlbumName -> Pipe -> IO (Maybe Album)
@@ -39,11 +41,11 @@ findAlbum' a pipe = toEntityMaybe "b" <$> stmt where
     "MATCH (b:Album) WHERE b.name CONTAINS {title} RETURN b"
     (fromList [("title", T (unAlbumName a))])
 
-findAlbumsByArtistId' :: SpotifyId -> Pipe -> IO [Album]
+findAlbumsByArtistId' :: ArtistSpotifyId -> Pipe -> IO [Album]
 findAlbumsByArtistId' sid pipe = toEntityList "b" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_ALBUM]->(b:Album) WHERE a.spotifyId={artistId} RETURN b"
-    (fromList [("artistId", T (unSpotifyId sid))])
+    (fromList [("artistId", T (unArtistSpotifyId sid))])
 
 findAlbumsByArtist' :: ArtistName -> Pipe -> IO [Album]
 findAlbumsByArtist' a pipe = toEntityList "b" <$> stmt where
@@ -51,18 +53,18 @@ findAlbumsByArtist' a pipe = toEntityList "b" <$> stmt where
     "MATCH (a:Artist)-[:HAS_ALBUM]->(b:Album) WHERE a.name CONTAINS {artistName} RETURN b"
     (fromList [("artistName", T (unArtistName a))])
 
-createAlbum' :: SpotifyId -> Album -> Pipe -> IO (Maybe SpotifyId)
+createAlbum' :: ArtistSpotifyId -> Album -> Pipe -> IO (Maybe AlbumSpotifyId)
 createAlbum' artistId a pipe = do
   records <- run pipe $ queryP
     (  "MATCH (a:Artist) WHERE a.spotifyId={artistId} "
     <> "CREATE (b:Album { spotifyId : {albumId}, name : {name}, released : {released}, length : {length} }) "
     <> "CREATE (a)-[h:HAS_ALBUM]->(b) "
     <> "CREATE (b)-[f:FROM_ARTIST]->(a) "
-    <> "RETURN ID(b)"
+    <> "RETURN b.spotifyId"
     )
     (fromList
-      [ ("artistId", T (unSpotifyId artistId))
-      , ("albumId" , T (albumSpotifyId a))
+      [ ("artistId", T (unArtistSpotifyId artistId))
+      , ("albumId" , T (unAlbumSpotifyId $ albumSpotifyId a))
       , ("name"    , T (albumName a))
       , ("released", I (albumReleasedYear a))
       , ("length"  , I (albumTotalLength a))

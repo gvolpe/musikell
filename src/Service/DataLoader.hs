@@ -1,4 +1,4 @@
-{-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Service.DataLoader
   ( ExistingArtistError(..)
@@ -42,16 +42,11 @@ import           Repository.Entity              ( Album
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
+data ExistingAlbumError = ExistingAlbumError deriving Show
 data ExistingArtistError = ExistingArtistError deriving Show
 
+instance Exception ExistingAlbumError
 instance Exception ExistingArtistError
-
-verifyArtistDoesNotExist :: ArtistRepository IO -> [ArtistName] -> IO ()
-verifyArtistDoesNotExist repo names = do
-  let repoNames = E.ArtistName . unArtistName <$> names
-  result <- traverse (findArtist repo) repoNames
-  let filtered = result >>= maybeToList
-  if not (null filtered) then throwM ExistingArtistError else pure ()
 
 createArtists
   :: SpotifyClient IO
@@ -72,11 +67,26 @@ createAlbums client albumRepo artistId = do
   albums <- getArtistAlbums client token artistId
   let albumIds = AlbumId . R.albumId <$> R.albumItems albums
   tracks <- getAlbumDuration client token albumIds
-  let durations = (\t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t) <$> tracks
-  let albums' = uncurry toAlbum <$> (R.albumItems albums `zip` durations)
-  let artistId' = E.SpotifyId (unArtistId artistId)
+  let durations =
+        (\t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t)
+          <$> tracks
+  let albums'   = uncurry toAlbum <$> (R.albumItems albums `zip` durations)
+  let artistId' = E.ArtistSpotifyId (unArtistId artistId)
   persistAlbums albums' artistId' albumRepo
   pure albums'
+
+verifyArtistDoesNotExist :: ArtistRepository IO -> [ArtistName] -> IO ()
+verifyArtistDoesNotExist repo names = do
+  let repoNames = E.ArtistName . unArtistName <$> names
+  result <- traverse (findArtist repo) repoNames
+  let filtered = result >>= maybeToList
+  if not (null filtered) then throwM ExistingArtistError else pure ()
+
+verifyAlbumDoesNotExist :: AlbumRepository IO -> ArtistId -> IO ()
+verifyAlbumDoesNotExist repo artistId = do
+  let spotifyId = E.ArtistSpotifyId (unArtistId artistId)
+  result <- findAlbumsByArtistId repo spotifyId
+  if not (null result) then throwM ExistingAlbumError else pure ()
 
 toSeconds :: Int -> Int
 toSeconds ms = ms `div` 1000
@@ -95,7 +105,7 @@ getAlbumDuration
   :: SpotifyClient IO -> AccessToken -> [AlbumId] -> IO [TrackResponse]
 getAlbumDuration client token = traverse (getAlbumTracks client token)
 
-persistAlbums :: [Album] -> E.SpotifyId -> AlbumRepository IO -> IO ()
+persistAlbums :: [Album] -> E.ArtistSpotifyId -> AlbumRepository IO -> IO ()
 persistAlbums []     _        _         = putStrLn "No albums to persist"
 persistAlbums albums artistId albumRepo = do
   putStrLn $ "Persisting albums: " <> show albums
@@ -107,38 +117,13 @@ persistArtists artists artistRepo = do
   putStrLn $ "Persisting artists " <> show artists
   mapConcurrently_ (createArtist artistRepo) artists
 
-persistData
-  :: [(Artist, [Album])] -> ArtistRepository IO -> AlbumRepository IO -> IO ()
-persistData (x : xs) artistRepo albumRepo =
-  createArtist artistRepo (fst x) >>= \case
-    Just artistId -> do
-      putStrLn $ "Persisting albums of " <> show (fst x)
-      mapConcurrently_ (createAlbum albumRepo artistId) (snd x)
-      persistData xs artistRepo albumRepo
-    Nothing -> putStrLn "No artist"
-persistData [] _ _ = putStrLn "Nothing else to persist"
-
 toArtist :: ArtistItem -> Artist
-toArtist it = E.Artist (R.artistName it) (R.artistId it)
+toArtist it = E.Artist (E.ArtistSpotifyId $ R.artistId it) (R.artistName it)
 
 toAlbum :: AlbumItem -> Int -> Album
-toAlbum it =
-  E.Album (R.albumId it) (R.albumName it) (dateToYear $ R.albumReleaseDate it)
+toAlbum it = E.Album (E.AlbumSpotifyId $ R.albumId it)
+                     (R.albumName it)
+                     (dateToYear $ R.albumReleaseDate it)
 
 dateToYear :: Text -> Int
 dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))
-
-artistNames :: [ArtistName]
-artistNames =
-  ArtistName
-    <$> [ "A Perfect Circle"
-        , "The Contortionist"
-        , "David Maxim Micic"
-        , "Dream Theater"
-        , "Earthside"
-        , "Leprous"
-        , "Opeth"
-        , "Persefone"
-        , "Porcupine Tree"
-        , "Riverside"
-        ]
