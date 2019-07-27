@@ -46,7 +46,7 @@ query GetAlbumsByArtist {
 
 ```
 mutation CreateArtist {
-  newArtist(name: "Porcupine Tree") {
+  newArtist(names: ["Porcupine Tree", "Puscifer"]) {
     name
     spotifyId
   }
