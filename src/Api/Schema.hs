@@ -8,11 +8,16 @@ import           Api.Args.Album                 ( AlbumArgs )
 import qualified Api.Args.Album                as AlbumArgs
 import           Api.Args.Artist                ( ArtistArgs )
 import qualified Api.Args.Artist               as Args
+import           Api.Dependencies               ( Deps )
+import qualified Api.Dependencies              as D
 import           Api.Domain.AlbumQL             ( AlbumQL
                                                 , toAlbumQL
                                                 )
 import           Api.Domain.ArtistQL            ( ArtistQL
                                                 , toArtistQL
+                                                )
+import           Control.Monad.Catch            ( SomeException(..)
+                                                , handle
                                                 )
 import           Data.Functor                   ( (<&>) )
 import           Data.Morpheus.Kind             ( KIND
@@ -24,12 +29,14 @@ import           Data.Morpheus.Types            ( GQLType(..)
                                                 )
 import           Data.Text
 import           GHC.Generics                   ( Generic )
+import qualified Http.Client.Params            as Http
 import           Repository.Album
 import           Repository.Artist
 import           Repository.Entity              ( Artist(..)
                                                 , ArtistName(..)
                                                 )
 import qualified Repository.Entity             as E
+import           Service.DataLoader             ( createArtistBulk )
 import           Utils                          ( maybeToEither )
 
 data Query = Query
@@ -37,7 +44,7 @@ data Query = Query
   , albumsByArtist :: AlbumArgs -> ResM [AlbumQL]
   } deriving Generic
 
-data Mutation = Mutation
+newtype Mutation = Mutation
   { newArtist :: ArtistArgs -> ResM ArtistQL
   } deriving Generic
 
@@ -53,12 +60,18 @@ resolveAlbumsByArtist repo args = gqlResolver result where
     [] -> Left "No hits"
     xs -> Right $ toAlbumQL <$> xs
 
-newArtistMutation :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
-newArtistMutation repo args =
-  let artist = Artist (Args.name args) "hardcoded-id"
-  in  gqlResolver $ createArtist repo artist <&> \case
-        Just _  -> Right $ toArtistQL artist
-        Nothing -> Left "Failed to create new artist"
+newArtistMutation :: Deps -> ArtistArgs -> ResM ArtistQL
+newArtistMutation deps args =
+  let artist  = Http.ArtistName $ Args.name args
+      apiCall = createArtistBulk (D.spotifyConfig deps)
+                                 (D.artistRepository deps)
+                                 (D.albumRepository deps)
+                                 [artist]
+      handler :: IO (Either String ArtistQL)
+      handler = handle
+        (\(SomeException e) -> pure (Left "Failed to create new artist"))
+        (apiCall <&> Right . toArtistQL . Prelude.head) -- TODO: Do not use head
+  in  gqlResolver handler
 
 resolveQuery :: AlbumRepository IO -> ArtistRepository IO -> Query
 resolveQuery albumRepo artistRepo = Query
@@ -66,5 +79,5 @@ resolveQuery albumRepo artistRepo = Query
   , albumsByArtist = resolveAlbumsByArtist albumRepo
   }
 
-resolveMutation :: ArtistRepository IO -> Mutation
-resolveMutation repo = Mutation { newArtist = newArtistMutation repo }
+resolveMutation :: Deps -> Mutation
+resolveMutation deps = Mutation { newArtist = newArtistMutation deps }

@@ -14,7 +14,7 @@ rootResolver :: Deps -> GQLRootResolver IO Query Mutation ()
 rootResolver deps = GQLRootResolver
   { queryResolver        = pure $ resolveQuery (albumRepository deps)
                                                (artistRepository deps)
-  , mutationResolver     = pure $ resolveMutation (artistRepository deps)
+  , mutationResolver     = pure $ resolveMutation deps
   , subscriptionResolver = return ()
   }
 

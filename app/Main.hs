@@ -14,7 +14,7 @@ import           Repository.Album
 import           Repository.Artist
 import           Repository.Song
 import           Repository.Neo
-import           Service.DataLoader             ( loadData )
+import           Service.DataLoader             ( loadDataApp )
 
 p1 :: AppConfig -> IO ()
 p1 c = do
@@ -40,7 +40,7 @@ p3 c = do
   pool       <- mkPipePool (neo4j c)
   albumRepo  <- mkAlbumRepository pool
   artistRepo <- mkArtistRepository pool
-  loadData (spotify c) artistRepo albumRepo
+  loadDataApp (spotify c) artistRepo albumRepo
 
 main :: IO ()
 main = loadConfig >>= serve

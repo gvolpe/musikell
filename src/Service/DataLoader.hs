@@ -1,7 +1,8 @@
 {-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 
 module Service.DataLoader
-  ( loadData
+  ( createArtistBulk
+  , loadDataApp
   )
 where
 
@@ -35,14 +36,23 @@ import           Repository.Entity       hiding ( ArtistId
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
-loadData :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
-loadData cfg artistRepo albumRepo = do
-  token <- login cfg
-  print token
-  artists <- getArtistsByName cfg token artistNames
+loadDataApp
+  :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
+loadDataApp c a b = void $ createArtistBulk c a b artistNames
+
+createArtistBulk
+  :: SpotifyConfig
+  -> ArtistRepository IO
+  -> AlbumRepository IO
+  -> [ArtistName]
+  -> IO [Artist]
+createArtistBulk cfg artistRepo albumRepo names = do
+  token   <- login cfg
+  artists <- getArtistsByName cfg token names
   let ids = ArtistId . artistSpotifyId <$> artists
   responses <- getAlbums cfg token ids
   persistData (artists `zip` responses) artistRepo albumRepo
+  pure artists
 
 getArtistsByName :: SpotifyConfig -> AccessToken -> [ArtistName] -> IO [Artist]
 getArtistsByName cfg token names = do

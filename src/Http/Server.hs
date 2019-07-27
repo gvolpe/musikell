@@ -20,6 +20,6 @@ serve c = do
   pool       <- mkPipePool (neo4j c)
   artistRepo <- mkArtistRepository pool
   albumRepo  <- mkAlbumRepository pool
-  let deps = Deps artistRepo albumRepo
+  let deps = Deps (spotify c) artistRepo albumRepo
   let port = naturalToInt $ serverPort (httpServer c)
   scotty port $ post "/api" $ raw =<< (liftIO . gqlApi deps =<< body)
