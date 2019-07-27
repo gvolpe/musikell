@@ -57,7 +57,7 @@ mutation CreateArtist {
 
 ```
 mutation CreateArtistAlbums {
-  newAlbums(spotifyId: "0ybFZ2Ab08V8hueghSXm6E") {
+  newArtistAlbums(spotifyId: "0ybFZ2Ab08V8hueghSXm6E") {
     name
     yearOfRelease
     totalLength

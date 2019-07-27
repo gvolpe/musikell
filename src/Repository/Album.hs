@@ -7,7 +7,7 @@ module Repository.Album
   )
 where
 
-import Control.Monad.Catch (throwM)
+import           Control.Monad.Catch            ( throwM )
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
 import           Data.Monoid                    ( (<>) )
@@ -29,7 +29,8 @@ mkAlbumRepository :: Pool Pipe -> IO (AlbumRepository IO)
 mkAlbumRepository pool = pure $ AlbumRepository
   { findAlbum          = withResource pool . findAlbum'
   , findAlbumsByArtist = withResource pool . findAlbumsByArtist'
-  , createAlbum        = \spotifyId album -> withResource pool (createAlbum' spotifyId album)
+  , createAlbum        = \spotifyId album ->
+                           withResource pool (createAlbum' spotifyId album)
   }
 
 findAlbum' :: AlbumName -> Pipe -> IO (Maybe Album)
@@ -61,7 +62,7 @@ createAlbum' artistId a pipe = do
     )
     (fromList
       [ ("artistId", T (unSpotifyId artistId))
-      , ("albumId", T (albumSpotifyId a))
+      , ("albumId" , T (albumSpotifyId a))
       , ("name"    , T (albumName a))
       , ("released", I (albumReleasedYear a))
       , ("length"  , I (albumTotalLength a))

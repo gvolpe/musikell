@@ -49,7 +49,7 @@ data Query = Query
 
 data Mutation = Mutation
   { newArtist :: ArtistListArgs -> ResM [ArtistQL]
-  , newAlbums :: ArtistIdArg -> ResM [AlbumQL]
+  , newArtistAlbums :: ArtistIdArg -> ResM [AlbumQL]
   } deriving Generic
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
@@ -78,8 +78,8 @@ newArtistMutation deps args =
         (apiCall <&> (\a -> Right $ toArtistQL <$> a))
   in  gqlResolver handler
 
-newAlbumsMutation :: Deps -> ArtistIdArg -> ResM [AlbumQL]
-newAlbumsMutation deps arg =
+newArtistAlbumsMutation :: Deps -> ArtistIdArg -> ResM [AlbumQL]
+newArtistAlbumsMutation deps arg =
   let artistId = Http.ArtistId $ Args.spotifyId arg
       apiCall =
           createAlbums (D.spotifyClient deps) (D.albumRepository deps) artistId
@@ -97,6 +97,7 @@ resolveQuery albumRepo artistRepo = Query
   }
 
 resolveMutation :: Deps -> Mutation
-resolveMutation deps = Mutation { newArtist = newArtistMutation deps
-                                , newAlbums = newAlbumsMutation deps
-                                }
+resolveMutation deps = Mutation
+  { newArtist       = newArtistMutation deps
+  , newArtistAlbums = newArtistAlbumsMutation deps
+  }
