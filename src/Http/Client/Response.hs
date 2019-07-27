@@ -20,7 +20,10 @@ data AlbumItem = AlbumItem
   { albumId :: Text
   , albumName :: Text
   , albumReleaseDate :: Text
-  } deriving (Generic, Show)
+  } deriving (Eq, Generic, Show)
+
+instance Ord AlbumItem where
+  (AlbumItem id1 _ _) `compare` (AlbumItem id2 _ _) = id1 `compare` id2
 
 newtype AlbumResponse = AlbumResponse
   { albumItems :: [AlbumItem]

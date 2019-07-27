@@ -15,6 +15,7 @@ import           Control.Monad.Catch            ( Exception
                                                 , throwM
                                                 )
 import           Data.Functor                   ( void )
+import           Data.List                      ( sort )
 import           Data.Maybe                     ( fromMaybe
                                                 , maybeToList
                                                 )
@@ -66,11 +67,10 @@ createAlbums client albumRepo artistId = do
   token  <- login client
   albums <- getArtistAlbums client token artistId
   let albumIds = AlbumId . R.albumId <$> R.albumItems albums
-  tracks <- getAlbumDuration client token albumIds
-  let durations =
-        (\t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t)
-          <$> tracks
-  let albums'   = uncurry toAlbum <$> (R.albumItems albums `zip` durations)
+  tracks <- mapConcurrently (getTracksForAlbum client token) albumIds
+  let sortedAlbums = sort $ R.albumItems albums
+  let sortedDuration = snd <$> sort tracks
+  let albums'   = uncurry toAlbum <$> sortedAlbums `zip` sortedDuration
   let artistId' = E.ArtistSpotifyId (unArtistId artistId)
   persistAlbums albums' artistId' albumRepo
   pure albums'
@@ -100,7 +100,12 @@ getArtistsByName client token names = do
 getAlbums :: SpotifyClient IO -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
 getAlbums client token = mapConcurrently (getArtistAlbums client token)
 
--- Cannot use mapConcurrently here as we need the results to be in order
+getTracksForAlbum
+  :: SpotifyClient IO -> AccessToken -> AlbumId -> IO (AlbumId, Int)
+getTracksForAlbum client token albumId =
+  let calcLength = \t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t
+  in  (\t -> (albumId, calcLength t)) <$> getAlbumTracks client token albumId
+
 getAlbumDuration
   :: SpotifyClient IO -> AccessToken -> [AlbumId] -> IO [TrackResponse]
 getAlbumDuration client token = traverse (getAlbumTracks client token)
