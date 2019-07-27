@@ -30,10 +30,7 @@ import           Http.Client.Response           ( AlbumItem
                                                 , AlbumResponse
                                                 , ArtistItem
                                                 )
-import           Http.Client.Spotify            ( getArtistAlbums
-                                                , login
-                                                , searchArtist
-                                                )
+import           Http.Client.Spotify            ( SpotifyClient(..) )
 import           Repository.Album
 import           Repository.Artist
 import qualified Repository.Entity             as E
@@ -44,7 +41,7 @@ import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
 loadDataApp
-  :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
+  :: SpotifyClient IO -> ArtistRepository IO -> AlbumRepository IO -> IO ()
 loadDataApp c a b = void $ createArtistBulk c a b artistNames
 
 data ExistingArtistError = ExistingArtistError deriving Show
@@ -59,27 +56,28 @@ verifyArtistDoesNotExist repo names = do
   if length filtered > 0 then throwM ExistingArtistError else pure ()
 
 createArtistBulk
-  :: SpotifyConfig
+  :: SpotifyClient IO
   -> ArtistRepository IO
   -> AlbumRepository IO
   -> [ArtistName]
   -> IO [Artist]
-createArtistBulk cfg artistRepo albumRepo names = do
+createArtistBulk client artistRepo albumRepo names = do
   verifyArtistDoesNotExist artistRepo names
-  token   <- login cfg
-  artists <- getArtistsByName cfg token names
+  token   <- login client
+  artists <- getArtistsByName client token names
   let ids = ArtistId . E.artistSpotifyId <$> artists
-  responses <- getAlbums cfg token ids
+  responses <- getAlbums client token ids
   persistData (artists `zip` responses) artistRepo albumRepo
   pure artists
 
-getArtistsByName :: SpotifyConfig -> AccessToken -> [ArtistName] -> IO [Artist]
-getArtistsByName cfg token names = do
-  responses <- mapConcurrently (searchArtist cfg token) names
+getArtistsByName
+  :: SpotifyClient IO -> AccessToken -> [ArtistName] -> IO [Artist]
+getArtistsByName client token names = do
+  responses <- mapConcurrently (searchArtist client token) names
   pure $ toArtist <$> (responses >>= R.artistItems . R.artistObject)
 
-getAlbums :: SpotifyConfig -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
-getAlbums cfg token = mapConcurrently (getArtistAlbums cfg token)
+getAlbums :: SpotifyClient IO -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
+getAlbums client token = mapConcurrently (getArtistAlbums client token)
 
 persistData
   :: [(Artist, AlbumResponse)]

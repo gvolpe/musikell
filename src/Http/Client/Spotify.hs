@@ -1,9 +1,8 @@
 {-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
 
 module Http.Client.Spotify
-  ( getArtistAlbums
-  , login
-  , searchArtist
+  ( SpotifyClient(..)
+  , mkSpotifyClient
   )
 where
 
@@ -23,8 +22,21 @@ import           Http.Client.Response
 import           Network.Wreq
 import           Network.Wreq.Types             ( Postable )
 
-login :: SpotifyConfig -> IO AccessToken
-login c =
+data SpotifyClient m = SpotifyClient
+  { login :: m AccessToken
+  , getArtistAlbums :: AccessToken -> ArtistId -> m AlbumResponse
+  , searchArtist :: AccessToken -> ArtistName -> m ArtistResponse
+  }
+
+mkSpotifyClient :: SpotifyConfig -> IO (SpotifyClient IO)
+mkSpotifyClient cfg = pure SpotifyClient
+  { login           = login' cfg
+  , getArtistAlbums = getArtistAlbums' cfg
+  , searchArtist    = searchArtist' cfg
+  }
+
+login' :: SpotifyConfig -> IO AccessToken
+login' c =
   let url  = unpack (apiAuth c)
       key  = apiKey c
       frm  = header "Content-Type" .~ ["application/x-www-form-urlencoded"]
@@ -33,8 +45,8 @@ login c =
       body = ["grant_type" := ("client_credentials" :: Text)]
   in  reqP ops url body
 
-getArtistAlbums :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
-getArtistAlbums c t a =
+getArtistAlbums' :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
+getArtistAlbums' c t a =
   let url   = apiUri c <> "/artists/" <> unArtistId a <> "/albums"
       token = "Bearer " <> encodeUtf8 (unAccessToken t)
       auth  = header "Authorization" .~ [token]
@@ -43,8 +55,8 @@ getArtistAlbums c t a =
         putStrLn $ "Retrieving Spotify data for artist " <> show (unArtistId a)
         req ops url
 
-searchArtist :: SpotifyConfig -> AccessToken -> ArtistName -> IO ArtistResponse
-searchArtist c t n =
+searchArtist' :: SpotifyConfig -> AccessToken -> ArtistName -> IO ArtistResponse
+searchArtist' c t n =
   let url   = apiUri c <> "/search"
       token = "Bearer " <> encodeUtf8 (unAccessToken t)
       auth  = header "Authorization" .~ [token]

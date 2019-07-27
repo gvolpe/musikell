@@ -64,7 +64,7 @@ resolveAlbumsByArtist repo args = gqlResolver result where
 newArtistMutation :: Deps -> ArtistListArgs -> ResM [ArtistQL]
 newArtistMutation deps args =
   let artists = Http.ArtistName <$> Args.names args
-      apiCall = createArtistBulk (D.spotifyConfig deps)
+      apiCall = createArtistBulk (D.spotifyClient deps)
                                  (D.artistRepository deps)
                                  (D.albumRepository deps)
                                  artists

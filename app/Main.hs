@@ -29,18 +29,20 @@ p1 c = do
 
 p2 :: AppConfig -> IO ()
 p2 c = do
-  token <- login (spotify c)
+  client <- mkSpotifyClient (spotify c)
+  token  <- login client
   print token
   let tool = ArtistName "Porcupine Tree"
-  artist <- searchArtist (spotify c) token tool
+  artist <- searchArtist client token tool
   print artist
 
 p3 :: AppConfig -> IO ()
 p3 c = do
+  client     <- mkSpotifyClient (spotify c)
   pool       <- mkPipePool (neo4j c)
   albumRepo  <- mkAlbumRepository pool
   artistRepo <- mkArtistRepository pool
-  loadDataApp (spotify c) artistRepo albumRepo
+  loadDataApp client artistRepo albumRepo
 
 main :: IO ()
 main = loadConfig >>= serve

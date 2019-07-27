@@ -1,11 +1,11 @@
 module Api.Dependencies where
 
-import           Config                         ( SpotifyConfig )
+import           Http.Client.Spotify            ( SpotifyClient )
 import           Repository.Album               ( AlbumRepository )
 import           Repository.Artist              ( ArtistRepository )
 
 data Deps = Deps
-  { spotifyConfig :: SpotifyConfig
-  , artistRepository :: ArtistRepository IO
+  { artistRepository :: ArtistRepository IO
   , albumRepository :: AlbumRepository IO
+  , spotifyClient :: SpotifyClient IO
   }
