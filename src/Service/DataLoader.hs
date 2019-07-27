@@ -1,7 +1,8 @@
 {-# LANGUAGE BlockArguments, LambdaCase, OverloadedStrings #-}
 
 module Service.DataLoader
-  ( createArtistBulk
+  ( ExistingArtistError(..)
+  , createArtistBulk
   , loadDataApp
   )
 where
@@ -10,8 +11,13 @@ import           Config
 import           Control.Concurrent.Async       ( mapConcurrently
                                                 , mapConcurrently_
                                                 )
+import           Control.Monad.Catch            ( Exception
+                                                , throwM
+                                                )
 import           Data.Functor                   ( void )
-import           Data.Maybe                     ( fromMaybe )
+import           Data.Maybe                     ( fromMaybe
+                                                , maybeToList
+                                                )
 import           Data.Text                      ( Text
                                                 , unpack
                                                 )
@@ -30,8 +36,9 @@ import           Http.Client.Spotify            ( getArtistAlbums
                                                 )
 import           Repository.Album
 import           Repository.Artist
-import           Repository.Entity       hiding ( ArtistId
-                                                , ArtistName
+import qualified Repository.Entity             as E
+import           Repository.Entity              ( Album
+                                                , Artist
                                                 )
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
@@ -40,6 +47,17 @@ loadDataApp
   :: SpotifyConfig -> ArtistRepository IO -> AlbumRepository IO -> IO ()
 loadDataApp c a b = void $ createArtistBulk c a b artistNames
 
+data ExistingArtistError = ExistingArtistError deriving Show
+
+instance Exception ExistingArtistError
+
+verifyArtistDoesNotExist :: ArtistRepository IO -> [ArtistName] -> IO ()
+verifyArtistDoesNotExist repo names = do
+  let repoNames = (\n -> E.ArtistName $ unArtistName n) <$> names
+  result <- traverse (findArtist repo) repoNames
+  let filtered = result >>= maybeToList
+  if length filtered > 0 then throwM ExistingArtistError else pure ()
+
 createArtistBulk
   :: SpotifyConfig
   -> ArtistRepository IO
@@ -47,9 +65,10 @@ createArtistBulk
   -> [ArtistName]
   -> IO [Artist]
 createArtistBulk cfg artistRepo albumRepo names = do
+  verifyArtistDoesNotExist artistRepo names
   token   <- login cfg
   artists <- getArtistsByName cfg token names
-  let ids = ArtistId . artistSpotifyId <$> artists
+  let ids = ArtistId . E.artistSpotifyId <$> artists
   responses <- getAlbums cfg token ids
   persistData (artists `zip` responses) artistRepo albumRepo
   pure artists
@@ -78,11 +97,11 @@ persistData (x : xs) artistRepo albumRepo =
 persistData [] _ _ = putStrLn "Nothing else to persist"
 
 toArtist :: ArtistItem -> Artist
-toArtist it = Artist (R.artistName it) (R.artistId it)
+toArtist it = E.Artist (R.artistName it) (R.artistId it)
 
 -- TODO: Calculate totalLength from the album's tracks (need to implement this on the Spotify client)
 toAlbum :: AlbumItem -> Album
-toAlbum it = Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3456
+toAlbum it = E.Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3456
 
 dateToYear :: Text -> Int
 dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))

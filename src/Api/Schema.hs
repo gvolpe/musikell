@@ -18,9 +18,7 @@ import           Api.Domain.AlbumQL             ( AlbumQL
 import           Api.Domain.ArtistQL            ( ArtistQL
                                                 , toArtistQL
                                                 )
-import           Control.Monad.Catch            ( SomeException(..)
-                                                , handle
-                                                )
+import           Control.Monad.Catch            ( handle )
 import           Data.Functor                   ( (<&>) )
 import           Data.Morpheus.Kind             ( KIND
                                                 , OBJECT
@@ -38,7 +36,9 @@ import           Repository.Entity              ( Artist(..)
                                                 , ArtistName(..)
                                                 )
 import qualified Repository.Entity             as E
-import           Service.DataLoader             ( createArtistBulk )
+import           Service.DataLoader             ( ExistingArtistError(..)
+                                                , createArtistBulk
+                                                )
 
 data Query = Query
   { artist :: ArtistArgs -> ResM ArtistQL
@@ -70,8 +70,9 @@ newArtistMutation deps args =
                                  artists
       errorMsg = "Failed to create new artist"
       handler :: IO (Either String [ArtistQL])
-      handler = handle (\(SomeException e) -> pure (Left errorMsg))
-                       (apiCall <&> (\a -> Right $ toArtistQL <$> a))
+      handler = handle
+        (\ExistingArtistError -> pure (Left "Artist already exists"))
+        (apiCall <&> (\a -> Right $ toArtistQL <$> a))
   in  gqlResolver handler
 
 resolveQuery :: AlbumRepository IO -> ArtistRepository IO -> Query
