@@ -21,7 +21,8 @@ import           Data.Maybe                     ( fromMaybe
 import           Data.Text                      ( Text
                                                 , unpack
                                                 )
-import           Http.Client.Params             ( ArtistId(..)
+import           Http.Client.Params             ( AlbumId(..)
+                                                , ArtistId(..)
                                                 , ArtistName(..)
                                                 , AccessToken
                                                 )
@@ -29,6 +30,7 @@ import qualified Http.Client.Response          as R
 import           Http.Client.Response           ( AlbumItem
                                                 , AlbumResponse
                                                 , ArtistItem
+                                                , TrackResponse
                                                 )
 import           Http.Client.Spotify            ( SpotifyClient(..) )
 import           Repository.Album
@@ -50,10 +52,10 @@ instance Exception ExistingArtistError
 
 verifyArtistDoesNotExist :: ArtistRepository IO -> [ArtistName] -> IO ()
 verifyArtistDoesNotExist repo names = do
-  let repoNames = (\n -> E.ArtistName $ unArtistName n) <$> names
+  let repoNames = E.ArtistName . unArtistName <$> names
   result <- traverse (findArtist repo) repoNames
   let filtered = result >>= maybeToList
-  if length filtered > 0 then throwM ExistingArtistError else pure ()
+  if not (null filtered) then throwM ExistingArtistError else pure ()
 
 createArtistBulk
   :: SpotifyClient IO
@@ -66,9 +68,18 @@ createArtistBulk client artistRepo albumRepo names = do
   token   <- login client
   artists <- getArtistsByName client token names
   let ids = ArtistId . E.artistSpotifyId <$> artists
-  responses <- getAlbums client token ids
-  persistData (artists `zip` responses) artistRepo albumRepo
+  albums <- getAlbums client token ids
+  let albumIds = AlbumId . R.albumId <$> (albums >>= R.albumItems)
+  tracks <- getAlbumDuration client token albumIds
+  let durations = (\t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t) <$> tracks
+  print durations
+  let albums' = (\a -> uncurry toAlbum <$> R.albumItems a `zip` durations) <$> albums
+  print albums'
+  persistData (artists `zip` albums') artistRepo albumRepo
   pure artists
+
+toSeconds :: Int -> Int
+toSeconds ms = ms `div` 1000
 
 getArtistsByName
   :: SpotifyClient IO -> AccessToken -> [ArtistName] -> IO [Artist]
@@ -79,8 +90,13 @@ getArtistsByName client token names = do
 getAlbums :: SpotifyClient IO -> AccessToken -> [ArtistId] -> IO [AlbumResponse]
 getAlbums client token = mapConcurrently (getArtistAlbums client token)
 
+-- Cannot use mapConcurrently here as we need the results to be in order
+getAlbumDuration
+  :: SpotifyClient IO -> AccessToken -> [AlbumId] -> IO [TrackResponse]
+getAlbumDuration client token = traverse (getAlbumTracks client token)
+
 persistData
-  :: [(Artist, AlbumResponse)]
+  :: [(Artist, [Album])]
   -> ArtistRepository IO
   -> AlbumRepository IO
   -> IO ()
@@ -88,8 +104,7 @@ persistData (x : xs) artistRepo albumRepo =
   createArtist artistRepo (fst x) >>= \case
     Just artistId -> do
       putStrLn $ "Persisting albums of " <> show (fst x)
-      let albums = toAlbum <$> R.albumItems (snd x)
-      mapConcurrently_ (createAlbum albumRepo artistId) albums
+      mapConcurrently_ (createAlbum albumRepo artistId) (snd x)
       persistData xs artistRepo albumRepo
     Nothing -> putStrLn "No artist"
 persistData [] _ _ = putStrLn "Nothing else to persist"
@@ -97,9 +112,8 @@ persistData [] _ _ = putStrLn "Nothing else to persist"
 toArtist :: ArtistItem -> Artist
 toArtist it = E.Artist (R.artistName it) (R.artistId it)
 
--- TODO: Calculate totalLength from the album's tracks (need to implement this on the Spotify client)
-toAlbum :: AlbumItem -> Album
-toAlbum it = E.Album (R.albumName it) (dateToYear $ R.albumReleaseDate it) 3456
+toAlbum :: AlbumItem -> Int -> Album
+toAlbum it = E.Album (R.albumName it) (dateToYear $ R.albumReleaseDate it)
 
 dateToYear :: Text -> Int
 dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))

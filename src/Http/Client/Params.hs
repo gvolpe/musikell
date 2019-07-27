@@ -10,6 +10,8 @@ newtype AccessToken = AccessToken { unAccessToken :: Text } deriving (Generic, S
 newtype ArtistId = ArtistId { unArtistId :: Text } deriving Show
 newtype ArtistName = ArtistName { unArtistName :: Text } deriving Show
 
+newtype AlbumId = AlbumId { unAlbumId :: Text } deriving Show
+
 instance FromJSON AccessToken where
   parseJSON = withObject "f" $ \v -> AccessToken
     <$> v .: "access_token"

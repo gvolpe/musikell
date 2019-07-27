@@ -9,7 +9,7 @@ where
 import           Config
 import           Control.Lens
 import           Data.Aeson                     ( FromJSON )
-import           Data.ByteString.Lazy           ( ByteString )
+import qualified Data.ByteString.Internal      as C
 import           Data.Monoid                    ( (<>) )
 import           Data.Text
 import           Data.Text.Encoding             ( encodeUtf8 )
@@ -24,6 +24,7 @@ import           Network.Wreq.Types             ( Postable )
 
 data SpotifyClient m = SpotifyClient
   { login :: m AccessToken
+  , getAlbumTracks :: AccessToken -> AlbumId -> IO TrackResponse
   , getArtistAlbums :: AccessToken -> ArtistId -> m AlbumResponse
   , searchArtist :: AccessToken -> ArtistName -> m ArtistResponse
   }
@@ -31,6 +32,7 @@ data SpotifyClient m = SpotifyClient
 mkSpotifyClient :: SpotifyConfig -> IO (SpotifyClient IO)
 mkSpotifyClient cfg = pure SpotifyClient
   { login           = login' cfg
+  , getAlbumTracks  = getAlbumTracks' cfg
   , getArtistAlbums = getArtistAlbums' cfg
   , searchArtist    = searchArtist' cfg
   }
@@ -47,26 +49,36 @@ login' c =
 
 getArtistAlbums' :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
 getArtistAlbums' c t a =
-  let url   = apiUri c <> "/artists/" <> unArtistId a <> "/albums"
-      token = "Bearer " <> encodeUtf8 (unAccessToken t)
-      auth  = header "Authorization" .~ [token]
-      ops   = defaults & param "limit" .~ ["50"] & auth
+  let url = apiUri c <> "/artists/" <> unArtistId a <> "/albums"
+      ops = defaults & param "limit" .~ ["50"] & authHeader (token t)
   in  do
-        putStrLn $ "Retrieving Spotify data for artist " <> show (unArtistId a)
+        putStrLn $ "Retrieving Spotify artist albums for " <> show a
+        req ops url
+
+getAlbumTracks' :: SpotifyConfig -> AccessToken -> AlbumId -> IO TrackResponse
+getAlbumTracks' c t a =
+  let url = apiUri c <> "/albums/" <> unAlbumId a <> "/tracks"
+      ops = defaults & param "limit" .~ ["50"] & authHeader (token t)
+  in  do
+        putStrLn $ "Retrieving Spotify album tracks for " <> show (unAlbumId a)
         req ops url
 
 searchArtist' :: SpotifyConfig -> AccessToken -> ArtistName -> IO ArtistResponse
 searchArtist' c t n =
   let url   = apiUri c <> "/search"
-      token = "Bearer " <> encodeUtf8 (unAccessToken t)
-      auth  = header "Authorization" .~ [token]
       query = param "q" .~ [unArtistName n]
       atype = param "type" .~ ["artist"]
       limit = param "limit" .~ ["1"]
-      ops   = defaults & query & atype & limit & auth
+      ops   = defaults & query & atype & limit & authHeader (token t)
   in  do
-        putStrLn $ "Find artist by name on Spotify " <> show (unArtistName n)
+        putStrLn $ "Find artist on Spotify by " <> show n
         req ops url
+
+token :: AccessToken -> C.ByteString
+token t = "Bearer " <> encodeUtf8 (unAccessToken t)
+
+authHeader :: C.ByteString -> Options -> Options
+authHeader t = header "Authorization" .~ [t]
 
 req :: forall a . FromJSON a => Options -> Text -> IO a
 req ops url =

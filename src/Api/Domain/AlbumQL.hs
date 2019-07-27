@@ -15,6 +15,7 @@ import           Data.Morpheus.Types            ( GQLType )
 import           Data.Text                      ( Text
                                                 , length
                                                 , pack
+                                                , unpack
                                                 )
 import           GHC.Generics                   ( Generic )
 import           Repository.Entity              ( Album )
@@ -33,10 +34,25 @@ addZero x | x == "0"      = "00"
           | length x == 1 = "0" <> x
           | otherwise     = x
 
+addHour :: Text -> Maybe (Text, Text)
+addHour mins
+  | length mins == 3
+  = let mins'   = read (unpack mins) :: Int
+        hours   = pack . show $ mins' `div` 60
+        newMins = pack . show $ mins' `mod` 60
+    in  Just (hours, newMins)
+  | otherwise
+  = Nothing
+
 lengthFormatted :: Int -> Text
-lengthFormatted x = addZero mins <> ":" <> addZero secs where
-  mins = pack . show $ x `div` 60
-  secs = pack . show $ x `mod` 60
+lengthFormatted x =
+  let mins = pack . show $ x `div` 60
+      secs = pack . show $ x `mod` 60
+      noHour m = addZero m <> ":" <> addZero secs
+      withHour h m = addZero h <> ":" <> noHour m
+  in  case addHour mins of
+        Just (h, m) -> withHour h m
+        Nothing     -> noHour mins
 
 toAlbumQL :: Album -> AlbumQL
 toAlbumQL a = AlbumQL (E.albumName a)

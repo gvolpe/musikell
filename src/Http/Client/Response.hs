@@ -8,6 +8,14 @@ import           Data.Text                      ( Text
                                                 )
 import           GHC.Generics                   ( Generic )
 
+newtype TrackItem = TrackItem
+  { trackDurationMs :: Int
+  } deriving (Generic, Show)
+
+newtype TrackResponse = TrackResponse
+  { trackItems :: [TrackItem]
+  } deriving (Generic, Show)
+
 data AlbumItem = AlbumItem
   { albumId :: Text
   , albumName :: Text
@@ -31,6 +39,14 @@ newtype ArtistObject = ArtistObject
 newtype ArtistResponse = ArtistResponse
   { artistObject :: ArtistObject
   } deriving (Generic, Show)
+
+instance FromJSON TrackItem where
+  parseJSON = withObject "item" $ \v -> TrackItem
+    <$> v .: "duration_ms"
+
+instance FromJSON TrackResponse where
+  parseJSON = withObject "items" $ \v -> TrackResponse
+    <$> v .: "items"
 
 instance FromJSON AlbumItem where
   parseJSON = withObject "item" $ \v -> AlbumItem
