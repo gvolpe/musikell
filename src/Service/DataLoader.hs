@@ -2,8 +2,8 @@
 
 module Service.DataLoader
   ( ExistingArtistError(..)
-  , createArtistBulk
-  , loadDataApp
+  , createAlbums
+  , createArtists
   )
 where
 
@@ -42,10 +42,6 @@ import           Repository.Entity              ( Album
 import           Repository.Song
 import           Text.Read                      ( readMaybe )
 
-loadDataApp
-  :: SpotifyClient IO -> ArtistRepository IO -> AlbumRepository IO -> IO ()
-loadDataApp c a b = void $ createArtistBulk c a b artistNames
-
 data ExistingArtistError = ExistingArtistError deriving Show
 
 instance Exception ExistingArtistError
@@ -57,26 +53,30 @@ verifyArtistDoesNotExist repo names = do
   let filtered = result >>= maybeToList
   if not (null filtered) then throwM ExistingArtistError else pure ()
 
-createArtistBulk
+createArtists
   :: SpotifyClient IO
   -> ArtistRepository IO
   -> AlbumRepository IO
   -> [ArtistName]
   -> IO [Artist]
-createArtistBulk client artistRepo albumRepo names = do
+createArtists client artistRepo albumRepo names = do
   verifyArtistDoesNotExist artistRepo names
   token   <- login client
   artists <- getArtistsByName client token names
-  let ids = ArtistId . E.artistSpotifyId <$> artists
-  albums <- getAlbums client token ids
-  let albumIds = AlbumId . R.albumId <$> (albums >>= R.albumItems)
+  persistArtists artists artistRepo
+  pure artists
+
+createAlbums :: SpotifyClient IO -> AlbumRepository IO -> ArtistId -> IO [Album]
+createAlbums client albumRepo artistId = do
+  token  <- login client
+  albums <- getArtistAlbums client token artistId
+  let albumIds = AlbumId . R.albumId <$> R.albumItems albums
   tracks <- getAlbumDuration client token albumIds
   let durations = (\t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t) <$> tracks
-  print durations
-  let albums' = (\a -> uncurry toAlbum <$> R.albumItems a `zip` durations) <$> albums
-  print albums'
-  persistData (artists `zip` albums') artistRepo albumRepo
-  pure artists
+  let albums' = uncurry toAlbum <$> (R.albumItems albums `zip` durations)
+  let artistId' = E.SpotifyId (unArtistId artistId)
+  persistAlbums albums' artistId' albumRepo
+  pure albums'
 
 toSeconds :: Int -> Int
 toSeconds ms = ms `div` 1000
@@ -95,11 +95,20 @@ getAlbumDuration
   :: SpotifyClient IO -> AccessToken -> [AlbumId] -> IO [TrackResponse]
 getAlbumDuration client token = traverse (getAlbumTracks client token)
 
+persistAlbums :: [Album] -> E.SpotifyId -> AlbumRepository IO -> IO ()
+persistAlbums []     _        _         = putStrLn "No albums to persist"
+persistAlbums albums artistId albumRepo = do
+  putStrLn $ "Persisting albums: " <> show albums
+  mapConcurrently_ (createAlbum albumRepo artistId) albums
+
+persistArtists :: [Artist] -> ArtistRepository IO -> IO ()
+persistArtists []      _          = putStrLn "No artists to persist"
+persistArtists artists artistRepo = do
+  putStrLn $ "Persisting artists " <> show artists
+  mapConcurrently_ (createArtist artistRepo) artists
+
 persistData
-  :: [(Artist, [Album])]
-  -> ArtistRepository IO
-  -> AlbumRepository IO
-  -> IO ()
+  :: [(Artist, [Album])] -> ArtistRepository IO -> AlbumRepository IO -> IO ()
 persistData (x : xs) artistRepo albumRepo =
   createArtist artistRepo (fst x) >>= \case
     Just artistId -> do
@@ -113,7 +122,8 @@ toArtist :: ArtistItem -> Artist
 toArtist it = E.Artist (R.artistName it) (R.artistId it)
 
 toAlbum :: AlbumItem -> Int -> Album
-toAlbum it = E.Album (R.albumName it) (dateToYear $ R.albumReleaseDate it)
+toAlbum it =
+  E.Album (R.albumId it) (R.albumName it) (dateToYear $ R.albumReleaseDate it)
 
 dateToYear :: Text -> Int
 dateToYear txt = fromMaybe 0 $ readMaybe (take 4 (unpack txt))

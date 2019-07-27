@@ -7,6 +7,7 @@ module Api.Schema where
 import           Api.Args.Album                 ( AlbumArgs )
 import qualified Api.Args.Album                as AlbumArgs
 import           Api.Args.Artist                ( ArtistArgs
+                                                , ArtistIdArg
                                                 , ArtistListArgs
                                                 )
 import qualified Api.Args.Artist               as Args
@@ -37,7 +38,8 @@ import           Repository.Entity              ( Artist(..)
                                                 )
 import qualified Repository.Entity             as E
 import           Service.DataLoader             ( ExistingArtistError(..)
-                                                , createArtistBulk
+                                                , createAlbums
+                                                , createArtists
                                                 )
 
 data Query = Query
@@ -45,8 +47,9 @@ data Query = Query
   , albumsByArtist :: AlbumArgs -> ResM [AlbumQL]
   } deriving Generic
 
-newtype Mutation = Mutation
+data Mutation = Mutation
   { newArtist :: ArtistListArgs -> ResM [ArtistQL]
+  , newAlbums :: ArtistIdArg -> ResM [AlbumQL]
   } deriving Generic
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
@@ -64,15 +67,27 @@ resolveAlbumsByArtist repo args = gqlResolver result where
 newArtistMutation :: Deps -> ArtistListArgs -> ResM [ArtistQL]
 newArtistMutation deps args =
   let artists = Http.ArtistName <$> Args.names args
-      apiCall = createArtistBulk (D.spotifyClient deps)
-                                 (D.artistRepository deps)
-                                 (D.albumRepository deps)
-                                 artists
+      apiCall = createArtists (D.spotifyClient deps)
+                              (D.artistRepository deps)
+                              (D.albumRepository deps)
+                              artists
       errorMsg = "Failed to create new artist"
       handler :: IO (Either String [ArtistQL])
       handler = handle
         (\ExistingArtistError -> pure (Left "Artist already exists"))
         (apiCall <&> (\a -> Right $ toArtistQL <$> a))
+  in  gqlResolver handler
+
+newAlbumsMutation :: Deps -> ArtistIdArg -> ResM [AlbumQL]
+newAlbumsMutation deps arg =
+  let artistId = Http.ArtistId $ Args.spotifyId arg
+      apiCall =
+          createAlbums (D.spotifyClient deps) (D.albumRepository deps) artistId
+      errorMsg = "Failed to create albums for artist"
+      handler :: IO (Either String [AlbumQL])
+      handler = handle
+        (\ExistingArtistError -> pure (Left "Album already exists"))
+        (apiCall <&> (\a -> Right $ toAlbumQL <$> a))
   in  gqlResolver handler
 
 resolveQuery :: AlbumRepository IO -> ArtistRepository IO -> Query
@@ -82,4 +97,6 @@ resolveQuery albumRepo artistRepo = Query
   }
 
 resolveMutation :: Deps -> Mutation
-resolveMutation deps = Mutation { newArtist = newArtistMutation deps }
+resolveMutation deps = Mutation { newArtist = newArtistMutation deps
+                                , newAlbums = newAlbumsMutation deps
+                                }

@@ -52,3 +52,15 @@ mutation CreateArtist {
   }
 }
 ```
+
+##### Create Artist Albums
+
+```
+mutation CreateArtistAlbums {
+  newAlbums(spotifyId: "0ybFZ2Ab08V8hueghSXm6E") {
+    name
+    yearOfRelease
+    totalLength
+  }
+}
+```

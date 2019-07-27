@@ -19,13 +19,14 @@ class NodeMapper a where
 instance NodeMapper Artist where
   toEntity p =
     Artist
-      <$> (Map.lookup "name" p >>= exact :: Maybe Text)
-      <*> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
+      <$> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
+      <*> (Map.lookup "name" p >>= exact :: Maybe Text)
 
 instance NodeMapper Album where
   toEntity p =
     Album
-      <$> (Map.lookup "name" p >>= exact :: Maybe Text)
+      <$> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
+      <*> (Map.lookup "name" p >>= exact :: Maybe Text)
       <*> (Map.lookup "released" p >>= exact :: Maybe Int)
       <*> (Map.lookup "length" p >>= exact :: Maybe Int)
 
@@ -50,8 +51,10 @@ toEntityList :: NodeMapper a => Text -> [Record] -> [a]
 toEntityList identifier records = records >>= maybeToList . f
   where f r = (toNodeProps identifier r :: Maybe NodeProps) >>= toEntity
 
-toArtistId :: NodeProps -> Maybe ArtistId
-toArtistId p = ArtistId <$> (Map.lookup "ID(a)" p >>= exact :: Maybe Int)
+toArtistSpotifyId :: NodeProps -> Maybe SpotifyId
+toArtistSpotifyId p =
+  SpotifyId <$> (Map.lookup "a.spotifyId" p >>= exact :: Maybe Text)
 
-toAlbumId :: NodeProps -> Maybe AlbumId
-toAlbumId p = AlbumId <$> (Map.lookup "ID(b)" p >>= exact :: Maybe Int)
+toAlbumSpotifyId :: NodeProps -> Maybe SpotifyId
+toAlbumSpotifyId p =
+  SpotifyId <$> (Map.lookup "b.spotifyId" p >>= exact :: Maybe Text)

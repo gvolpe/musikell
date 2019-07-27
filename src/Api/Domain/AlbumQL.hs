@@ -21,6 +21,7 @@ import           GHC.Generics                   ( Generic )
 import           Repository.Entity              ( Album )
 import qualified Repository.Entity             as E
 
+-- TODO: Add spotifyId
 data AlbumQL = AlbumQL
   { name :: Text
   , yearOfRelease :: Int
