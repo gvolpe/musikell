@@ -6,7 +6,9 @@ module Api.Schema where
 
 import           Api.Args.Album                 ( AlbumArgs )
 import qualified Api.Args.Album                as AlbumArgs
-import           Api.Args.Artist                ( ArtistArgs )
+import           Api.Args.Artist                ( ArtistArgs
+                                                , ArtistListArgs
+                                                )
 import qualified Api.Args.Artist               as Args
 import           Api.Dependencies               ( Deps )
 import qualified Api.Dependencies              as D
@@ -37,7 +39,6 @@ import           Repository.Entity              ( Artist(..)
                                                 )
 import qualified Repository.Entity             as E
 import           Service.DataLoader             ( createArtistBulk )
-import           Utils                          ( maybeToEither )
 
 data Query = Query
   { artist :: ArtistArgs -> ResM ArtistQL
@@ -45,7 +46,7 @@ data Query = Query
   } deriving Generic
 
 newtype Mutation = Mutation
-  { newArtist :: ArtistArgs -> ResM ArtistQL
+  { newArtist :: ArtistListArgs -> ResM [ArtistQL]
   } deriving Generic
 
 resolveArtist :: ArtistRepository IO -> ArtistArgs -> ResM ArtistQL
@@ -60,17 +61,17 @@ resolveAlbumsByArtist repo args = gqlResolver result where
     [] -> Left "No hits"
     xs -> Right $ toAlbumQL <$> xs
 
-newArtistMutation :: Deps -> ArtistArgs -> ResM ArtistQL
+newArtistMutation :: Deps -> ArtistListArgs -> ResM [ArtistQL]
 newArtistMutation deps args =
-  let artist  = Http.ArtistName $ Args.name args
+  let artists = Http.ArtistName <$> Args.names args
       apiCall = createArtistBulk (D.spotifyConfig deps)
                                  (D.artistRepository deps)
                                  (D.albumRepository deps)
-                                 [artist]
-      handler :: IO (Either String ArtistQL)
-      handler = handle
-        (\(SomeException e) -> pure (Left "Failed to create new artist"))
-        (apiCall <&> Right . toArtistQL . Prelude.head) -- TODO: Do not use head
+                                 artists
+      errorMsg = "Failed to create new artist"
+      handler :: IO (Either String [ArtistQL])
+      handler = handle (\(SomeException e) -> pure (Left errorMsg))
+                       (apiCall <&> (\a -> Right $ toArtistQL <$> a))
   in  gqlResolver handler
 
 resolveQuery :: AlbumRepository IO -> ArtistRepository IO -> Query
