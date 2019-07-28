@@ -10,9 +10,11 @@ import           Dhall
 import           GHC.Generics
 
 data Neo4jConfig = Neo4jConfig
-  { neo4jUri :: Text
+  { neo4jHost :: Text
+  , neo4jPort :: Natural
   , neo4jUser :: Text
   , neo4jPassword :: Text
+  , neo4jSecure :: Bool
   } deriving (Generic, Show)
 
 newtype HttpServerConfig = HttpServerConfig

@@ -1,12 +1,14 @@
 let Env = < Test : {} | Prod : {} >
 
-let neo4jEnv = λ(env : Env) →
-  merge { Test = λ(x : {}) →  "127.0.0.1", Prod = λ(x : {}) →  "127.0.0.1" } env
+let neo4jHostEnv = λ(env : Env) →
+  merge { Test = λ(x : {}) →  "127.0.0.1", Prod = λ(x : {}) →  "0.0.0.0" } env
 
 let makeNeo4jConfig = λ(env : Env) →
-  { neo4jUri = "${neo4jEnv env}"
+  { neo4jHost = "${neo4jHostEnv env}"
+  , neo4jPort = 7687
   , neo4jUser = "neo4j"
   , neo4jPassword = "test"
+  , neo4jSecure = False
   }
 
 let makeHttpServerConfig = λ(env : Env) →
