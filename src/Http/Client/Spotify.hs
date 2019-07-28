@@ -24,7 +24,7 @@ import           Network.Wreq.Types             ( Postable )
 
 data SpotifyClient m = SpotifyClient
   { login :: m AccessToken
-  , getAlbumTracks :: AccessToken -> AlbumId -> IO TrackResponse
+  , getAlbumTracks :: AccessToken -> AlbumId -> m TrackResponse
   , getArtistAlbums :: AccessToken -> ArtistId -> m AlbumResponse
   , searchArtist :: AccessToken -> ArtistName -> m ArtistResponse
   }

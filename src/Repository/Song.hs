@@ -21,7 +21,7 @@ data SongRepository m = SongRepository
   { findSong :: SongName -> m (Maybe Song)
   , findSongsByAlbum :: AlbumName -> m [Song]
   , findSongsByArtist :: ArtistName -> m [Song]
-  --, createSong :: ArtistId -> AlbumId -> Song -> m ()
+  , createSong :: ArtistSpotifyId -> AlbumSpotifyId -> Song -> m ()
   }
 
 mkSongRepository :: Pool Pipe -> IO (SongRepository IO)
@@ -29,8 +29,8 @@ mkSongRepository pool = pure $ SongRepository
   { findSong          = withResource pool . findSong'
   , findSongsByAlbum  = withResource pool . findSongsByAlbum'
   , findSongsByArtist = withResource pool . findSongsByArtist'
-  --, createSong        = \artistId albumId song ->
-  --                        withResource pool (createSong' artistId albumId song)
+  , createSong        = \artistId albumId song ->
+                          withResource pool (createSong' artistId albumId song)
   }
 
 findSong' :: SongName -> Pipe -> IO (Maybe Song)

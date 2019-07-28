@@ -1,7 +1,11 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 
 -- | The GraphQL schema for mutations
-module Api.Schema.Mutation where
+module Api.Schema.Mutation
+  ( Mutation(..)
+  , resolveMutation
+  )
+where
 
 import           Api.Args.Artist                ( ArtistIdArg
                                                 , ArtistListArgs
@@ -15,14 +19,17 @@ import           Api.Domain.AlbumQL             ( AlbumQL
 import           Api.Domain.ArtistQL            ( ArtistQL
                                                 , toArtistQL
                                                 )
-import           Control.Monad.Catch            ( handle )
+import           Control.Monad.Catch            ( Exception
+                                                , handle
+                                                )
 import           Data.Morpheus.Types            ( ResM
                                                 , gqlResolver
                                                 )
 import           Data.Text
 import           GHC.Generics                   ( Generic )
 import qualified Http.Client.Params            as Http
-import           Service.DataLoader             ( ExistingArtistError(..)
+import           Service.DataLoader             ( ExistingAlbumError(..)
+                                                , ExistingArtistError(..)
                                                 , createAlbums
                                                 , createArtists
                                                 )
@@ -32,6 +39,16 @@ data Mutation = Mutation
   , newArtistAlbums :: ArtistIdArg -> ResM [AlbumQL]
   } deriving Generic
 
+baseHandle
+  :: forall a b e
+   . Exception e
+  => IO [a]
+  -> (a -> b)
+  -> (e -> Text)
+  -> IO (Either String [b])
+baseHandle action f g =
+  handle (pure . Left . unpack <$> g) ((\x -> Right $ f <$> x) <$> action)
+
 newArtistMutation :: Deps -> ArtistListArgs -> ResM [ArtistQL]
 newArtistMutation deps args =
   let artists = Http.ArtistName <$> Args.names args
@@ -39,24 +56,16 @@ newArtistMutation deps args =
                               (D.artistRepository deps)
                               (D.albumRepository deps)
                               artists
-      errorMsg = "Failed to create new artist"
-      handler :: IO (Either String [ArtistQL])
-      handler = handle
-        (\ExistingArtistError -> pure (Left "Artist already exists"))
-        ((\a -> Right $ toArtistQL <$> a) <$> apiCall)
-  in  gqlResolver handler
+      errorFn ExistingArtistError = "Failed to create new artist"
+  in  gqlResolver $ baseHandle apiCall toArtistQL errorFn
 
 newArtistAlbumsMutation :: Deps -> ArtistIdArg -> ResM [AlbumQL]
 newArtistAlbumsMutation deps arg =
   let artistId = Http.ArtistId $ Args.spotifyId arg
       apiCall =
           createAlbums (D.spotifyClient deps) (D.albumRepository deps) artistId
-      errorMsg = "Failed to create albums for artist"
-      handler :: IO (Either String [AlbumQL])
-      handler = handle
-        (\ExistingArtistError -> pure (Left "Album already exists"))
-        ((\a -> Right $ toAlbumQL <$> a) <$> apiCall)
-  in  gqlResolver handler
+      errorFn ExistingAlbumError = "Failed to create albums for artist"
+  in  gqlResolver $ baseHandle apiCall toAlbumQL errorFn
 
 resolveMutation :: Deps -> Mutation
 resolveMutation deps = Mutation

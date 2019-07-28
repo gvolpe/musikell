@@ -1,7 +1,8 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Service.DataLoader
-  ( ExistingArtistError(..)
+  ( ExistingAlbumError(..)
+  , ExistingArtistError(..)
   , createAlbums
   , createArtists
   )
@@ -64,6 +65,7 @@ createArtists client artistRepo albumRepo names = do
 
 createAlbums :: SpotifyClient IO -> AlbumRepository IO -> ArtistId -> IO [Album]
 createAlbums client albumRepo artistId = do
+  verifyAlbumDoesNotExist albumRepo artistId
   token  <- login client
   albums <- getArtistAlbums client token artistId
   let albumIds = AlbumId . R.albumId <$> R.albumItems albums
@@ -103,7 +105,7 @@ getAlbums client token = mapConcurrently (getArtistAlbums client token)
 getTracksForAlbum
   :: SpotifyClient IO -> AccessToken -> AlbumId -> IO (AlbumId, Int)
 getTracksForAlbum client token albumId =
-  let calcLength = \t -> toSeconds . sum $ R.trackDurationMs <$> R.trackItems t
+  let calcLength t = toSeconds . sum $ R.trackDurationMs <$> R.trackItems t
   in  (\t -> (albumId, calcLength t)) <$> getAlbumTracks client token albumId
 
 getAlbumDuration

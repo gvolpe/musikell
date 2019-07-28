@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, ScopedTypeVariables #-}
 
 -- | The Neo4j Mapper type class, its instances and some helper functions.
 module Repository.Mapper where
@@ -51,10 +51,11 @@ toEntityList :: NodeMapper a => Text -> [Record] -> [a]
 toEntityList identifier records = records >>= maybeToList . f
   where f r = (toNodeProps identifier r :: Maybe NodeProps) >>= toEntity
 
+convert :: forall a b . RecordValue a => Text -> (a -> b) -> NodeProps -> Maybe b
+convert key f p = f <$> (Map.lookup key p >>= exact :: Maybe a)
+
 toArtistSpotifyId :: NodeProps -> Maybe ArtistSpotifyId
-toArtistSpotifyId p =
-  ArtistSpotifyId <$> (Map.lookup "a.spotifyId" p >>= exact :: Maybe Text)
+toArtistSpotifyId = convert "a.spotifyId" ArtistSpotifyId
 
 toAlbumSpotifyId :: NodeProps -> Maybe AlbumSpotifyId
-toAlbumSpotifyId p =
-  AlbumSpotifyId <$> (Map.lookup "b.spotifyId" p >>= exact :: Maybe Text)
+toAlbumSpotifyId = convert "b.spotifyId" AlbumSpotifyId
