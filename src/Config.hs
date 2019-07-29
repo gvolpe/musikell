@@ -8,6 +8,8 @@ import           Data.Text                      ( Text
                                                 )
 import           Dhall
 import           GHC.Generics
+import qualified GHC.IO.Encoding
+import qualified System.IO
 
 data Neo4jConfig = Neo4jConfig
   { neo4jHost :: Text
@@ -47,4 +49,7 @@ instance Interpret SpotifyConfig
 instance Interpret AppConfig
 
 loadConfig :: IO AppConfig
-loadConfig = input auto "./config/app.dhall"
+loadConfig = do
+  -- Needed to run dhall under nix
+  GHC.IO.Encoding.setLocaleEncoding System.IO.utf8
+  input auto "./config/app.dhall"

@@ -3,10 +3,30 @@ musikell
 
 Example of a `GraphQL` application backed by `Neo4j` using [morpheus](https://morpheusgraphql.com/) and [hasbolt](https://hackage.haskell.org/package/hasbolt), respectively.
 
+
 ### Run it locally
+
+##### Dependencies
+
+We need a `Neo4j` instance running. Get it up and running quickly using `docker`.
 
 ```
 docker run -it --rm -p7474:7474 -p7687:7687 --env NEO4J_AUTH=neo4j/test neo4j:latest
+```
+
+##### Using Cabal
+
+```
+cabal new-run musikell
+```
+
+##### Using Nix
+
+Does not require to have `cabal` installed.
+
+```
+nix-shell --pure shell.nix
+cabal new-run musikell
 ```
 
 ### GraphQL API via Http
