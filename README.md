@@ -35,6 +35,8 @@ Go to `http://localhost:3000/api` and start sending queries. Eg. using `Insomnia
 
 ![insomnia](insomnia.png)
 
+You can also get the GraphQL Schema at `http://localhost:3000/schema.gql`.
+
 ### Queries
 
 ##### Get Artist

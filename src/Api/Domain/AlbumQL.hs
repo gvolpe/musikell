@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveAnyClass, DeriveGeneric, OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
 
 module Api.Domain.AlbumQL
   ( AlbumQL(..)
@@ -8,10 +8,8 @@ where
 
 import           Prelude                 hiding ( length )
 import           Data.Monoid                    ( (<>) )
-import           Data.Morpheus.Kind             ( KIND
-                                                , OBJECT
-                                                )
-import           Data.Morpheus.Types            ( GQLType )
+import           Data.Morpheus.Kind             ( OBJECT )
+import           Data.Morpheus.Types            ( GQLType(..) )
 import           Data.Text                      ( Text
                                                 , length
                                                 , pack
@@ -27,9 +25,10 @@ data AlbumQL = AlbumQL
   , name :: Text
   , yearOfRelease :: Int
   , totalLength :: Text
-  } deriving (Generic, GQLType)
+  } deriving Generic
 
-type instance KIND AlbumQL = OBJECT
+instance GQLType AlbumQL where
+  type KIND AlbumQL = OBJECT
 
 addZero :: Text -> Text
 addZero x | x == "0"      = "00"

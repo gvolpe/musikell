@@ -3,7 +3,9 @@
 module Http.Server where
 
 import           Api.Dependencies               ( Deps(..) )
-import           Api.Root                       ( gqlApi )
+import           Api.Root                       ( gqlApi
+                                                , gqlDoc
+                                                )
 import           Config                         ( AppConfig(..)
                                                 , HttpServerConfig(..)
                                                 )
@@ -24,4 +26,6 @@ serve c = do
   spotifyClient <- mkSpotifyClient (spotify c)
   let deps = Deps artistRepo albumRepo spotifyClient
   let port = naturalToInt $ serverPort (httpServer c)
-  scotty port $ post "/api" $ raw =<< (liftIO . gqlApi deps =<< body)
+  scotty port $ do
+    post "/api" $ raw =<< (liftIO . gqlApi deps =<< body)
+    get "/schema.gql" $ raw (gqlDoc deps)
