@@ -30,10 +30,10 @@ data AlbumQL = AlbumQL
 instance GQLType AlbumQL where
   type KIND AlbumQL = OBJECT
 
-addZero :: Text -> Text
-addZero x | x == "0"      = "00"
-          | length x == 1 = "0" <> x
-          | otherwise     = x
+maybeAddZero :: Text -> Text
+maybeAddZero x | x == "0"      = "00"
+               | length x == 1 = "0" <> x
+               | otherwise     = x
 
 addHour :: Text -> Maybe (Text, Text)
 addHour mins
@@ -49,10 +49,9 @@ lengthFormatted :: Int -> Text
 lengthFormatted x =
   let mins = pack . show $ x `div` 60
       secs = pack . show $ x `mod` 60
-      noHour m = addZero m <> ":" <> addZero secs
-      withHour h m = addZero h <> ":" <> noHour m
+      noHour m = maybeAddZero m <> ":" <> maybeAddZero secs
   in  case addHour mins of
-        Just (h, m) -> withHour h m
+        Just (h, m) -> maybeAddZero h <> ":" <> noHour m
         Nothing     -> noHour mins
 
 toAlbumQL :: Album -> AlbumQL
