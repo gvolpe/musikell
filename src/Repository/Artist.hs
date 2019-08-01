@@ -11,12 +11,12 @@ import           Data.Functor                   ( (<&>)
                                                 , void
                                                 )
 import           Data.Map                       ( fromList )
+import           Data.Maybe                     ( listToMaybe )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
 import           Repository.Entity
 import           Repository.Mapper
-import           Utils                          ( headMaybe )
 
 data ArtistRepository m = ArtistRepository
   { findArtist :: ArtistName -> m (Maybe Artist)
@@ -44,4 +44,4 @@ createArtist' a pipe = do
       , ("spotifyId", T (unArtistSpotifyId $ artistSpotifyId a))
       ]
     )
-  pure $ headMaybe records >>= toArtistSpotifyId
+  pure $ listToMaybe records >>= toArtistSpotifyId

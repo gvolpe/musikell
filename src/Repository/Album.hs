@@ -10,6 +10,7 @@ where
 import           Control.Monad.Catch            ( throwM )
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
+import           Data.Maybe                     ( listToMaybe )
 import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
@@ -17,7 +18,6 @@ import           Database.Bolt
 import           Repository.Entity
 import           Repository.Mapper
 import           Repository.Song
-import           Utils                          ( headMaybe )
 
 data AlbumRepository m = AlbumRepository
   { findAlbum :: AlbumName -> m (Maybe Album)
@@ -70,4 +70,4 @@ createAlbum' artistId a pipe = do
       , ("length"  , I (albumTotalLength a))
       ]
     )
-  pure $ headMaybe records >>= toAlbumSpotifyId
+  pure $ listToMaybe records >>= toAlbumSpotifyId

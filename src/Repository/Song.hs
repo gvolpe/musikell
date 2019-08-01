@@ -9,13 +9,13 @@ where
 
 import           Data.Functor                   ( void )
 import           Data.Map                       ( fromList )
+import           Data.Maybe                     ( listToMaybe )
 import           Data.Monoid                    ( (<>) )
 import           Data.Pool
 import           Data.Text
 import           Database.Bolt
 import           Repository.Entity
 import           Repository.Mapper
-import           Utils                          ( headMaybe )
 
 data SongRepository m = SongRepository
   { findSong :: SongName -> m (Maybe Song)

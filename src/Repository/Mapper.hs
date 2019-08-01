@@ -5,11 +5,12 @@ module Repository.Mapper where
 
 import           Data.Map                       ( Map )
 import qualified Data.Map                      as Map
-import           Data.Maybe                     ( maybeToList )
+import           Data.Maybe                     ( listToMaybe
+                                                , maybeToList
+                                                )
 import           Data.Text
 import           Database.Bolt
 import           Repository.Entity
-import           Utils                          ( headMaybe )
 
 type NodeProps = Map Text Value
 
@@ -18,13 +19,15 @@ class NodeMapper a where
 
 instance NodeMapper Artist where
   toEntity p =
-    Artist . ArtistSpotifyId
+    Artist
+      .   ArtistSpotifyId
       <$> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
       <*> (Map.lookup "name" p >>= exact :: Maybe Text)
 
 instance NodeMapper Album where
   toEntity p =
-    Album . AlbumSpotifyId
+    Album
+      .   AlbumSpotifyId
       <$> (Map.lookup "spotifyId" p >>= exact :: Maybe Text)
       <*> (Map.lookup "name" p >>= exact :: Maybe Text)
       <*> (Map.lookup "released" p >>= exact :: Maybe Int)
@@ -45,13 +48,14 @@ toNodeProps identifier r = nodeProps <$> toNode identifier r
 
 toEntityMaybe :: NodeMapper a => Text -> [Record] -> Maybe a
 toEntityMaybe identifier records =
-  headMaybe records >>= toNodeProps identifier >>= toEntity
+  listToMaybe records >>= toNodeProps identifier >>= toEntity
 
 toEntityList :: NodeMapper a => Text -> [Record] -> [a]
 toEntityList identifier records = records >>= maybeToList . f
   where f r = (toNodeProps identifier r :: Maybe NodeProps) >>= toEntity
 
-convert :: forall a b . RecordValue a => Text -> (a -> b) -> NodeProps -> Maybe b
+convert
+  :: forall a b . RecordValue a => Text -> (a -> b) -> NodeProps -> Maybe b
 convert key f p = f <$> (Map.lookup key p >>= exact :: Maybe a)
 
 toArtistSpotifyId :: NodeProps -> Maybe ArtistSpotifyId
