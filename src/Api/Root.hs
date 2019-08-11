@@ -12,7 +12,7 @@ import           Data.Morpheus                  ( interpreter )
 import           Data.Morpheus.Document         ( toGraphQLDocument )
 import           Data.Morpheus.Types            ( GQLRootResolver(..) )
 
-rootResolver :: Deps -> GQLRootResolver IO () Query Mutation ()
+rootResolver :: Deps -> GQLRootResolver IO () () Query Mutation ()
 rootResolver deps = GQLRootResolver
   { queryResolver        = pure $ resolveQuery deps
   , mutationResolver     = pure $ resolveMutation deps

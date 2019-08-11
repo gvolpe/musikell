@@ -22,8 +22,8 @@ import           Api.Domain.ArtistQL            ( ArtistQL
 import           Control.Monad.Catch            ( Exception
                                                 , handle
                                                 )
-import           Data.Morpheus.Types            ( ResM
-                                                , gqlResolver
+import           Data.Morpheus.Types            ( IORes
+                                                , resolver
                                                 )
 import           Data.Text
 import           GHC.Generics                   ( Generic )
@@ -35,8 +35,8 @@ import           Service.DataLoader             ( ExistingAlbumError(..)
                                                 )
 
 data Mutation = Mutation
-  { newArtist :: ArtistListArgs -> ResM [ArtistQL]
-  , newArtistAlbums :: ArtistIdArg -> ResM [AlbumQL]
+  { newArtist :: ArtistListArgs -> IORes [ArtistQL]
+  , newArtistAlbums :: ArtistIdArg -> IORes [AlbumQL]
   } deriving Generic
 
 baseHandle
@@ -49,7 +49,7 @@ baseHandle
 baseHandle action f g =
   handle (pure . Left . unpack <$> g) ((\x -> Right $ f <$> x) <$> action)
 
-newArtistMutation :: Deps -> ArtistListArgs -> ResM [ArtistQL]
+newArtistMutation :: Deps -> ArtistListArgs -> IORes [ArtistQL]
 newArtistMutation deps args =
   let artists = Http.ArtistName <$> Args.names args
       apiCall = createArtists (D.spotifyClient deps)
@@ -57,15 +57,15 @@ newArtistMutation deps args =
                               (D.albumRepository deps)
                               artists
       errorFn ExistingArtistError = "Failed to create new artist"
-  in  gqlResolver $ baseHandle apiCall toArtistQL errorFn
+  in  resolver $ baseHandle apiCall toArtistQL errorFn
 
-newArtistAlbumsMutation :: Deps -> ArtistIdArg -> ResM [AlbumQL]
+newArtistAlbumsMutation :: Deps -> ArtistIdArg -> IORes [AlbumQL]
 newArtistAlbumsMutation deps arg =
   let artistId = Http.ArtistId $ Args.spotifyId arg
       apiCall =
           createAlbums (D.spotifyClient deps) (D.albumRepository deps) artistId
       errorFn ExistingAlbumError = "Failed to create albums for artist"
-  in  gqlResolver $ baseHandle apiCall toAlbumQL errorFn
+  in  resolver $ baseHandle apiCall toAlbumQL errorFn
 
 resolveMutation :: Deps -> Mutation
 resolveMutation deps = Mutation
