@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 -- | The Neo4j repository for Artist, including interface and cypher queries.
 module Repository.Artist
@@ -30,18 +30,18 @@ mkArtistRepository pool = pure $ ArtistRepository
   }
 
 findArtist' :: ArtistName -> Pipe -> IO (Maybe Artist)
-findArtist' a pipe = toEntityMaybe "a" <$> stmt where
+findArtist' ArtistName {..} pipe = toEntityMaybe "a" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (a:Artist) WHERE a.name CONTAINS {name} RETURN a"
-    (fromList [("name", T (unArtistName a))])
+    (fromList [("name", T unArtistName)])
 
 createArtist' :: Artist -> Pipe -> IO (Maybe ArtistSpotifyId)
-createArtist' a pipe = do
+createArtist' Artist {..} pipe = do
   records <- run pipe $ queryP
     "CREATE (a:Artist { name : {name}, spotifyId : {spotifyId} }) RETURN a.spotifyId"
     (fromList
-      [ ("name"     , T (artistName a))
-      , ("spotifyId", T (unArtistSpotifyId $ artistSpotifyId a))
+      [ ("name"     , T artistName)
+      , ("spotifyId", T (unArtistSpotifyId artistSpotifyId))
       ]
     )
   pure $ listToMaybe records >>= toArtistSpotifyId

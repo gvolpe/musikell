@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 -- | The Neo4j repository for Album, including interface and cypher queries.
 module Repository.Album
@@ -36,25 +36,25 @@ mkAlbumRepository pool = pure $ AlbumRepository
   }
 
 findAlbum' :: AlbumName -> Pipe -> IO (Maybe Album)
-findAlbum' a pipe = toEntityMaybe "b" <$> stmt where
+findAlbum' AlbumName {..} pipe = toEntityMaybe "b" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (b:Album) WHERE b.name CONTAINS {title} RETURN b"
-    (fromList [("title", T (unAlbumName a))])
+    (fromList [("title", T unAlbumName)])
 
 findAlbumsByArtistId' :: ArtistSpotifyId -> Pipe -> IO [Album]
-findAlbumsByArtistId' sid pipe = toEntityList "b" <$> stmt where
+findAlbumsByArtistId' ArtistSpotifyId {..} pipe = toEntityList "b" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_ALBUM]->(b:Album) WHERE a.spotifyId={artistId} RETURN b"
-    (fromList [("artistId", T (unArtistSpotifyId sid))])
+    (fromList [("artistId", T unArtistSpotifyId)])
 
 findAlbumsByArtist' :: ArtistName -> Pipe -> IO [Album]
-findAlbumsByArtist' a pipe = toEntityList "b" <$> stmt where
+findAlbumsByArtist' ArtistName {..} pipe = toEntityList "b" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_ALBUM]->(b:Album) WHERE a.name CONTAINS {artistName} RETURN b"
-    (fromList [("artistName", T (unArtistName a))])
+    (fromList [("artistName", T unArtistName)])
 
 createAlbum' :: ArtistSpotifyId -> Album -> Pipe -> IO (Maybe AlbumSpotifyId)
-createAlbum' artistId a pipe = do
+createAlbum' ArtistSpotifyId {..} Album {..} pipe = do
   records <- run pipe $ queryP
     (  "MATCH (a:Artist) WHERE a.spotifyId={artistId} "
     <> "CREATE (b:Album { spotifyId : {albumId}, name : {name}, released : {released}, length : {length} }) "
@@ -63,11 +63,11 @@ createAlbum' artistId a pipe = do
     <> "RETURN b.spotifyId"
     )
     (fromList
-      [ ("artistId", T (unArtistSpotifyId artistId))
-      , ("albumId" , T (unAlbumSpotifyId $ albumSpotifyId a))
-      , ("name"    , T (albumName a))
-      , ("released", I (albumReleasedYear a))
-      , ("length"  , I (albumTotalLength a))
+      [ ("artistId", T unArtistSpotifyId)
+      , ("albumId" , T (unAlbumSpotifyId albumSpotifyId))
+      , ("name"    , T albumName)
+      , ("released", I albumReleasedYear)
+      , ("length"  , I albumTotalLength)
       ]
     )
   pure $ listToMaybe records >>= toAlbumSpotifyId

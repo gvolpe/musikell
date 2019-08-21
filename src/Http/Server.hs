@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 module Http.Server where
 
@@ -13,7 +13,7 @@ import           GHC.Natural                    ( naturalToInt )
 import           Web.Scotty
 
 serve :: HttpServerConfig -> Deps -> IO ()
-serve cfg deps = scotty port $ do
+serve HttpServerConfig {..} deps = scotty port $ do
   post "/api" $ raw =<< (liftIO . gqlApi deps =<< body)
   get "/schema.gql" $ raw (gqlDoc deps)
-  where port = naturalToInt $ serverPort cfg
+  where port = naturalToInt serverPort

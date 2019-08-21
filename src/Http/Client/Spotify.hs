@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings, RankNTypes, ScopedTypeVariables #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards, RankNTypes, ScopedTypeVariables #-}
 
 module Http.Client.Spotify
   ( SpotifyClient(..)
@@ -38,35 +38,34 @@ mkSpotifyClient cfg = pure SpotifyClient
   }
 
 login' :: SpotifyConfig -> IO AccessToken
-login' c =
-  let url  = unpack (apiAuth c)
-      key  = apiKey c
+login' SpotifyConfig {..} =
+  let url  = unpack apiAuth
       frm  = header "Content-Type" .~ ["application/x-www-form-urlencoded"]
-      auth = header "Authorization" .~ ["Basic " <> encodeUtf8 (apiKey c)]
+      auth = header "Authorization" .~ ["Basic " <> encodeUtf8 apiKey]
       ops  = defaults & frm & auth
       body = ["grant_type" := ("client_credentials" :: Text)]
   in  reqP ops url body
 
 getArtistAlbums' :: SpotifyConfig -> AccessToken -> ArtistId -> IO AlbumResponse
-getArtistAlbums' c t a =
-  let url = apiUri c <> "/artists/" <> unArtistId a <> "/albums"
+getArtistAlbums' SpotifyConfig {..} t a@ArtistId {..} =
+  let url = apiUri <> "/artists/" <> unArtistId <> "/albums"
       ops = defaults & param "limit" .~ ["50"] & authHeader (token t)
   in  do
         putStrLn $ "Retrieving Spotify artist albums for " <> show a
         req ops url
 
 getAlbumTracks' :: SpotifyConfig -> AccessToken -> AlbumId -> IO TrackResponse
-getAlbumTracks' c t a =
-  let url = apiUri c <> "/albums/" <> unAlbumId a <> "/tracks"
+getAlbumTracks' SpotifyConfig {..} t a@AlbumId {..} =
+  let url = apiUri <> "/albums/" <> unAlbumId <> "/tracks"
       ops = defaults & param "limit" .~ ["50"] & authHeader (token t)
   in  do
-        putStrLn $ "Retrieving Spotify album tracks for " <> show (unAlbumId a)
+        putStrLn $ "Retrieving Spotify album tracks for " <> show unAlbumId
         req ops url
 
 searchArtist' :: SpotifyConfig -> AccessToken -> ArtistName -> IO ArtistResponse
-searchArtist' c t n =
-  let url   = apiUri c <> "/search"
-      query = param "q" .~ [unArtistName n]
+searchArtist' SpotifyConfig {..} t n@ArtistName {..} =
+  let url   = apiUri <> "/search"
+      query = param "q" .~ [unArtistName]
       atype = param "type" .~ ["artist"]
       limit = param "limit" .~ ["1"]
       ops   = defaults & query & atype & limit & authHeader (token t)

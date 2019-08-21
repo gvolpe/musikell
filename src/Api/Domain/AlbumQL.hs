@@ -1,4 +1,4 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, RecordWildCards, TypeFamilies #-}
 
 module Api.Domain.AlbumQL
   ( AlbumQL(..)
@@ -55,7 +55,7 @@ lengthFormatted x =
         Nothing     -> noHour mins
 
 toAlbumQL :: Album -> AlbumQL
-toAlbumQL a = AlbumQL (E.unAlbumSpotifyId (E.albumSpotifyId a))
-                      (E.albumName a)
-                      (E.albumReleasedYear a)
-                      (lengthFormatted $ E.albumTotalLength a)
+toAlbumQL E.Album {..} = AlbumQL (E.unAlbumSpotifyId albumSpotifyId)
+                                 albumName
+                                 albumReleasedYear
+                                 (lengthFormatted albumTotalLength)

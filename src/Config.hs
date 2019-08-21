@@ -23,7 +23,7 @@ newtype HttpServerConfig = HttpServerConfig
   { serverPort :: Natural
   } deriving (Generic, Show)
 
-data SpotifyConfig = SpotfyConfig
+data SpotifyConfig = SpotifyConfig
   { apiKey :: Text
   , apiUri :: Text
   , apiAuth :: Text

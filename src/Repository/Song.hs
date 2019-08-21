@@ -1,4 +1,4 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings, RecordWildCards #-}
 
 -- | The Neo4j repository for Song, including interface and cypher queries.
 module Repository.Song
@@ -34,25 +34,25 @@ mkSongRepository pool = pure $ SongRepository
   }
 
 findSong' :: SongName -> Pipe -> IO (Maybe Song)
-findSong' t pipe = toEntityMaybe "s" <$> stmt where
+findSong' SongName {..} pipe = toEntityMaybe "s" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (s:Song) WHERE s.title CONTAINS {title} RETURN s"
-    (fromList [("title", T (unSongName t))])
+    (fromList [("title", T unSongName)])
 
 findSongsByAlbum' :: AlbumName -> Pipe -> IO [Song]
-findSongsByAlbum' a pipe = toEntityList "s" <$> stmt where
+findSongsByAlbum' AlbumName {..} pipe = toEntityList "s" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (b:Album)-[:HAS_SONG]->(s:Song) WHERE b.name CONTAINS {albumName} RETURN s"
-    (fromList [("albumName", T (unAlbumName a))])
+    (fromList [("albumName", T unAlbumName)])
 
 findSongsByArtist' :: ArtistName -> Pipe -> IO [Song]
-findSongsByArtist' a pipe = toEntityList "s" <$> stmt where
+findSongsByArtist' ArtistName {..} pipe = toEntityList "s" <$> stmt where
   stmt = run pipe $ queryP
     "MATCH (a:Artist)-[:HAS_SONG]->(s:Song) WHERE a.name CONTAINS {artistName} RETURN s"
-    (fromList [("artistName", T (unArtistName a))])
+    (fromList [("artistName", T unArtistName)])
 
 createSong' :: ArtistSpotifyId -> AlbumSpotifyId -> Song -> Pipe -> IO ()
-createSong' artistId albumId s pipe = void . run pipe $ queryP
+createSong' ArtistSpotifyId {..} AlbumSpotifyId {..} Song {..} pipe = void . run pipe $ queryP
   (  "MATCH (a:Artist), (b:Album) WHERE a.spotifyId={artistId} AND b.spotifyId={albumId} "
   <> "CREATE (s:Song { no : {no}, title : {title}, duration : {duration} }) "
   <> "CREATE (b)-[hb:HAS_SONG]->(s) "
@@ -62,10 +62,10 @@ createSong' artistId albumId s pipe = void . run pipe $ queryP
   <> "RETURN ID(s)"
   )
   (fromList
-    [ ("artistId", T (unArtistSpotifyId artistId))
-    , ("albumId" , T (unAlbumSpotifyId albumId))
-    , ("no"      , I (songNo s))
-    , ("title"   , T (songTitle s))
-    , ("duration", I (songDuration s))
+    [ ("artistId", T unArtistSpotifyId)
+    , ("albumId" , T unAlbumSpotifyId)
+    , ("no"      , I songNo)
+    , ("title"   , T songTitle)
+    , ("duration", I songDuration)
     ]
   )

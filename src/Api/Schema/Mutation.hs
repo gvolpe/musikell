@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings, RankNTypes, ScopedTypeVariables, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables, TypeFamilies #-}
 
 -- | The GraphQL schema for mutations
 module Api.Schema.Mutation
@@ -11,8 +12,7 @@ import           Api.Args.Artist                ( ArtistIdArg
                                                 , ArtistListArgs
                                                 )
 import qualified Api.Args.Artist               as Args
-import           Api.Dependencies               ( Deps )
-import qualified Api.Dependencies              as D
+import           Api.Dependencies               ( Deps(..) )
 import           Api.Domain.AlbumQL             ( AlbumQL
                                                 , toAlbumQL
                                                 )
@@ -50,20 +50,16 @@ baseHandle action f g =
   handle (pure . Left . unpack <$> g) ((\x -> Right $ f <$> x) <$> action)
 
 newArtistMutation :: Deps -> ArtistListArgs -> IORes [ArtistQL]
-newArtistMutation deps args =
+newArtistMutation Deps {..} args =
   let artists = Http.ArtistName <$> Args.names args
-      apiCall = createArtists (D.spotifyClient deps)
-                              (D.artistRepository deps)
-                              (D.albumRepository deps)
-                              artists
+      apiCall = createArtists spotifyClient artistRepository artists
       errorFn ExistingArtistError = "Failed to create new artist"
   in  resolver $ baseHandle apiCall toArtistQL errorFn
 
 newArtistAlbumsMutation :: Deps -> ArtistIdArg -> IORes [AlbumQL]
-newArtistAlbumsMutation deps arg =
+newArtistAlbumsMutation Deps {..} arg =
   let artistId = Http.ArtistId $ Args.spotifyId arg
-      apiCall =
-          createAlbums (D.spotifyClient deps) (D.albumRepository deps) artistId
+      apiCall = createAlbums spotifyClient albumRepository artistId
       errorFn ExistingAlbumError = "Failed to create albums for artist"
   in  resolver $ baseHandle apiCall toAlbumQL errorFn
 
