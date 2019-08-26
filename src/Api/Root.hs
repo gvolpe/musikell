@@ -8,6 +8,7 @@ import           Api.Schema.Query               ( Query
                                                 , resolveQuery
                                                 )
 import           Data.ByteString.Lazy           ( ByteString )
+import           Data.Functor.Identity          ( Identity(..) )
 import           Data.Morpheus                  ( interpreter )
 import           Data.Morpheus.Document         ( toGraphQLDocument )
 import           Data.Morpheus.Types            ( GQLRootResolver(..) )
@@ -20,7 +21,7 @@ rootResolver deps = GQLRootResolver
   }
 
 gqlDoc :: Deps -> ByteString
-gqlDoc = toGraphQLDocument . rootResolver
+gqlDoc = toGraphQLDocument . Identity . rootResolver
 
 gqlApi :: Deps -> ByteString -> IO ByteString
 gqlApi = interpreter . rootResolver
