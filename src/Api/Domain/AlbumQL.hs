@@ -1,4 +1,5 @@
-{-# LANGUAGE DeriveGeneric, OverloadedStrings, RecordWildCards, TypeFamilies #-}
+{-# LANGUAGE DeriveGeneric, OverloadedStrings, RecordWildCards #-}
+{-# LANGUAGE TemplateHaskell, TypeFamilies, ViewPatterns #-}
 
 module Api.Domain.AlbumQL
   ( AlbumQL(..)
@@ -6,6 +7,7 @@ module Api.Domain.AlbumQL
   )
 where
 
+import           Control.FromSum                ( fromEither )
 import           Prelude                 hiding ( length )
 import           Data.Monoid                    ( (<>) )
 import           Data.Morpheus.Kind             ( OBJECT )
@@ -16,6 +18,7 @@ import           Data.Text                      ( Text
                                                 , unpack
                                                 )
 import           GHC.Generics                   ( Generic )
+import           Refined
 import           Repository.Entity              ( Album )
 import qualified Repository.Entity             as E
 import           Text.Read                      ( readMaybe )
@@ -29,6 +32,8 @@ data AlbumQL = AlbumQL
 
 instance GQLType AlbumQL where
   type KIND AlbumQL = OBJECT
+
+type PosInt = Refined Positive Int
 
 maybeAddZero :: Text -> Text
 maybeAddZero x | x == "0"      = "00"
@@ -45,8 +50,8 @@ addHour mins
   | otherwise
   = Nothing
 
-lengthFormatted :: Int -> Text
-lengthFormatted x =
+lengthFormatted :: PosInt -> Text
+lengthFormatted (unrefine -> x) =
   let mins = pack . show $ x `div` 60
       secs = pack . show $ x `mod` 60
       noHour m = maybeAddZero m <> ":" <> maybeAddZero secs
@@ -55,7 +60,11 @@ lengthFormatted x =
         Nothing     -> noHour mins
 
 toAlbumQL :: Album -> AlbumQL
-toAlbumQL E.Album {..} = AlbumQL (E.unAlbumSpotifyId albumSpotifyId)
-                                 albumName
-                                 albumReleasedYear
-                                 (lengthFormatted albumTotalLength)
+toAlbumQL E.Album {..} = AlbumQL
+  (E.unAlbumSpotifyId albumSpotifyId)
+  albumName
+  albumReleasedYear
+  (lengthFormatted $ positive albumTotalLength)
+ where
+  positive :: Int -> PosInt
+  positive = fromEither (\_ -> $$(refineTH 1) :: PosInt) . refine

@@ -1,6 +1,6 @@
 { mkDerivation, aeson, async, base, bytestring, containers, dhall
-, exceptions, hasbolt, lens, morpheus-graphql, resource-pool
-, scotty, stdenv, text, wreq
+, exceptions, from-sum, hasbolt, lens, morpheus-graphql, refined
+, resource-pool, scotty, stdenv, text, wreq
 }:
 mkDerivation {
   pname = "musikell";
@@ -9,8 +9,9 @@ mkDerivation {
   isLibrary = true;
   isExecutable = true;
   libraryHaskellDepends = [
-    aeson async base bytestring containers dhall exceptions hasbolt
-    lens morpheus-graphql resource-pool scotty text wreq
+    aeson async base bytestring containers dhall exceptions from-sum
+    hasbolt lens morpheus-graphql refined resource-pool scotty text
+    wreq
   ];
   executableHaskellDepends = [ base ];
   homepage = "https://github.com/gvolpe/musikell";
