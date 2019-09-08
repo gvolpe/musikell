@@ -45,7 +45,6 @@ library
                      , containers ^>= 0.6.0.1
                      , dhall ^>= 1.24.0
                      , exceptions ^>= 0.10.2
-                     , from-sum ^>= 0.2.1
                      , hasbolt ^>= 0.1.3.4
                      , lens ^>= 4.17.1
                      , morpheus-graphql ^>= 0.2.1

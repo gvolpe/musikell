@@ -7,7 +7,6 @@ module Api.Domain.AlbumQL
   )
 where
 
-import           Control.FromSum                ( fromEither )
 import           Prelude                 hiding ( length )
 import           Data.Monoid                    ( (<>) )
 import           Data.Morpheus.Kind             ( OBJECT )
@@ -67,4 +66,4 @@ toAlbumQL E.Album {..} = AlbumQL
   (lengthFormatted $ positive albumTotalLength)
  where
   positive :: Int -> PosInt
-  positive = fromEither (\_ -> $$(refineTH 1) :: PosInt) . refine
+  positive = either (\_ -> $$(refineTH 1) :: PosInt) id . refine
