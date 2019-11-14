@@ -1,6 +1,8 @@
 musikell
 ========
 
+[![built with nix](https://builtwithnix.org/badge.svg)](https://builtwithnix.org)
+
 Example of a `GraphQL` application backed by `Neo4j` using [morpheus](https://morpheusgraphql.com/) and [hasbolt](https://hackage.haskell.org/package/hasbolt), respectively.
 
 
