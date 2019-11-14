@@ -38,6 +38,8 @@ library
                      , Repository.Neo
                      , Repository.Song
                      , Service.DataLoader
+  default-extensions:  DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
+  ghc-options:         -fplugin=Polysemy.Plugin
   build-depends:       base ^>= 4.12.0.0
                      , aeson ^>= 1.4.4.0
                      , async ^>= 2.2.2
@@ -48,6 +50,8 @@ library
                      , hasbolt ^>= 0.1.3.4
                      , lens ^>= 4.17.1
                      , morpheus-graphql ^>= 0.2.1
+                     , polysemy ^>= 1.2.0.0
+                     , polysemy-plugin ^>= 0.2.3.0
                      , resource-pool ^>= 0.2.3.2
                      , scotty ^>= 0.11.4
                      , text ^>= 1.2.3.1
@@ -59,5 +63,9 @@ executable musikell
   main-is:             Main.hs
   build-depends:       base ^>=4.12.0.0
                      , musikell
+                     , polysemy ^>= 1.2.0.0
+                     , polysemy-plugin ^>= 0.2.3.0
+  default-extensions:  DataKinds FlexibleContexts GADTs LambdaCase PolyKinds RankNTypes ScopedTypeVariables TypeApplications TypeOperators TypeFamilies
+  ghc-options:         -fplugin=Polysemy.Plugin -threaded -rtsopts -with-rtsopts=-N
   hs-source-dirs:      app
   default-language:    Haskell2010
